@@ -3,6 +3,7 @@ import AuthContext from './AuthContext';
 import { authService } from '../../services/auth.service';
 import { getAccessToken, getRefreshToken } from '../../utils/storage';
 import { User } from '../../types';
+import { userService } from '../../services/user.service';
 
 interface AuthProviderProps {
     children: ReactNode;
@@ -20,12 +21,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             if (accessToken && refreshToken) {
                 try {
-                    // Refresh the token to validate and get user info
-                    const authResponse = await authService.refreshToken();
-                    setUser(authResponse.user);
+                    // First try to get the current user directly
+                    try {
+                        const user = await userService.getCurrentUser();
+                        setUser(user);
+                    } catch (error) {
+                        // If that fails, try refreshing the token
+                        const authResponse = await authService.refreshToken();
+                        setUser(authResponse.user);
+                    }
                 } catch (error) {
-                    // If refresh fails, user will remain null (not authenticated)
-                    console.error('Failed to refresh authentication:', error);
+                    console.error('Failed to authenticate:', error);
                 }
             }
 
