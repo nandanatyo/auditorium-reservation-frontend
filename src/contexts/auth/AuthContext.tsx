@@ -5,17 +5,17 @@ export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (
+  login?: (email: string, password: string) => Promise<void>;
+  register?: (
     email: string,
     otp: string,
     name: string,
     password: string
   ) => Promise<void>;
-  requestRegisterOTP: (email: string) => Promise<void>;
-  logout: () => Promise<void>;
-  requestResetPasswordOTP: (email: string) => Promise<void>;
-  resetPassword: (
+  requestRegisterOTP?: (email: string) => Promise<void>;
+  logout?: () => Promise<void>;
+  requestResetPasswordOTP?: (email: string) => Promise<void>;
+  resetPassword?: (
     email: string,
     otp: string,
     newPassword: string

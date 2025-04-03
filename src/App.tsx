@@ -24,13 +24,13 @@ import { AuthProvider } from "./contexts/auth/AuthProvider";
 
 function App() {
   return (
-    <UserProvider>
-      <Router>
-        <div className="d-flex flex-column min-vh-100">
-          <Navbar />
-          <main className="flex-grow-1 container py-4">
-            <div className="content-wrapper bg-white bg-opacity-75 rounded shadow p-3 mb-5">
-              <AuthProvider>
+    <AuthProvider>
+      <UserProvider>
+        <Router>
+          <div className="d-flex flex-column min-vh-100">
+            <Navbar />
+            <main className="flex-grow-1 container py-4">
+              <div className="content-wrapper bg-white bg-opacity-75 rounded shadow p-3 mb-5">
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/register" element={<Register />} />
@@ -55,13 +55,13 @@ function App() {
                   />
                   <Route path="/admin" element={<AdminDashboard />} />
                 </Routes>
-              </AuthProvider>
-            </div>
-          </main>
-          <Footer />
-        </div>
-      </Router>
-    </UserProvider>
+              </div>
+            </main>
+            <Footer />
+          </div>
+        </Router>
+      </UserProvider>
+    </AuthProvider>
   );
 }
 
