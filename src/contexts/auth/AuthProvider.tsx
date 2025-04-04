@@ -8,96 +8,143 @@ import { userService } from "../../services/user.service";
 interface AuthProviderProps {
   children: ReactNode;
 }
+type UserRole = 'admin' | 'coordinator' | 'user';
+
+// interface User {
+//   id: string;
+//   name: string;
+//   email: string;
+//   role: UserRole;
+//   bio?: string;
+//   organization?: string;
+//   created_at?: string;
+//   updated_at?: string;
+// }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Check if user is already authenticated on mount
-  // useEffect(() => {
-  //   const initAuth = async () => {
-  //     const accessToken = getAccessToken();
-  //     const refreshToken = getRefreshToken();
+  useEffect(() => {
+    const initAuth = async () => {
+      const accessToken = getAccessToken();
+      const refreshToken = getRefreshToken();
 
-  //     if (accessToken && refreshToken) {
-  //       try {
-  //         // First try to get the current user directly
-  //         try {
-  //           const user = await userService.getCurrentUser();
-  //           setUser(user);
-  //         } catch (error) {
-  //           // If that fails, try refreshing the token
-  //           console.error("Failed to autehnticate with refresh token", error);
-  //           const authResponse = await authService.refreshToken();
-  //           setUser(authResponse.user);
-  //         }
-  //       } catch (error) {
-  //         console.error("Failed to authenticate:", error);
-  //       }
-  //     }
+      if (accessToken && refreshToken) {
+        try {
+          // First try to get the current user directly
+          try {
+            const user = await userService.getCurrentUser();
+            console.log(user)
+            setUser(user);
+          } catch (error) {
+            // If that fails, try refreshing the token
+            console.error("Failed to autehnticate with refresh token", error);
+            const authResponse = await authService.refreshToken();
+            setUser(authResponse.user);
+          }
+        } catch (error) {
+          console.error("Failed to authenticate:", error);
+        }
+      }
 
-  //     setIsLoading(false);
-  //   };
+      setIsLoading(false);
+    };
 
-  //   initAuth();
-  // }, []);
+    initAuth();
+  }, []);
 
+  const login = async (email: string, password: string): Promise<void> => {
+    setIsLoading(false);
+    try {
+      // const response = await authService.login({ email, password });
+      const mockUser : any = {
+        id: "1",
+        name: "John Doe",
+        email: email,
+        role: email.includes("admin") ? "admin" : email.includes("coordinator") ? "coordinator" : "user",
+        bio: "Software developer with 5 years of experience",
+        organization: "Tech Company",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      } as const
+      setUser(mockUser);
+      // console.log("Login response:", response);
+      // setUser(response.data.user);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // const register = async (
-  //   email: string,
-  //   otp: string,
-  //   name: string,
-  //   password: string
-  // ): Promise<void> => {
-  //   setIsLoading(false);
-  //   try {
-  //     const response = await authService.register({
-  //       email,
-  //       otp,
-  //       name,
-  //       password,
-  //     });
-  //     setUser(response.user);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
+  const register = async (
+    email: string,
+    otp: string,
+    name: string,
+    password: string
+  ): Promise<void> => {
+    setIsLoading(false);
+    try {
+      // const response = await authService.register({
+      //   email,
+      //   otp,
+      //   name,
+      //   password,
+      // });
+      const mockUser : any = {
+        id: "1",
+        name: "John Doe",
+        email: email,
+        role: email.includes("admin") ? "admin" : email.includes("coordinator") ? "coordinator" : "user",
+        bio: "Software developer with 5 years of experience",
+        organization: "Tech Company",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
 
-  // const requestRegisterOTP = async (email: string): Promise<void> => {
-  //   await authService.requestRegisterOTP({ email });
-  // };
+      // console.log("Register response:", response);
+      setUser(mockUser);
+      // console.log("User registered successfully:", response.user);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // const logout = async (): Promise<void> => {
-  //   setIsLoading(false);
-  //   try {
-  //     await authService.logout();
-  //     setUser(null);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
+  const requestRegisterOTP = async (email: string): Promise<void> => {
+    await authService.requestRegisterOTP({ email });
+  };
 
-  // const requestResetPasswordOTP = async (email: string): Promise<void> => {
-  //   await authService.requestResetPasswordOTP({ email });
-  // };
+  const logout = async (): Promise<void> => {
+    setIsLoading(false);
+    try {
+      await authService.logout();
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // const resetPassword = async (
-  //   email: string,
-  //   otp: string,
-  //   newPassword: string
-  // ): Promise<void> => {
-  //   setIsLoading(false);
-  //   try {
-  //     const response = await authService.resetPassword({
-  //       email,
-  //       otp,
-  //       new_password: newPassword,
-  //     });
-  //     setUser(response.user);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
+  const requestResetPasswordOTP = async (email: string): Promise<void> => {
+    await authService.requestResetPasswordOTP({ email });
+  };
+
+  const resetPassword = async (
+    email: string,
+    otp: string,
+    newPassword: string
+  ): Promise<void> => {
+    setIsLoading(false);
+    try {
+      const response = await authService.resetPassword({
+        email,
+        otp,
+        new_password: newPassword,
+      });
+      setUser(response.user);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <AuthContext.Provider
@@ -105,12 +152,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user,
         isAuthenticated: !!user,
         isLoading,
-        // login,
-        // register,
-        // requestRegisterOTP,
-        // logout,
-        // requestResetPasswordOTP,
-        // resetPassword,
+        login,
+        register,
+        requestRegisterOTP,
+        logout,
+        requestResetPasswordOTP,
+        resetPassword,
       }}
     >
       {children}

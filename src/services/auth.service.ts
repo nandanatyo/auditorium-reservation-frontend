@@ -21,8 +21,8 @@ export const authService = {
     /**
      * Register a new user
      */
-    register: async (data: RegisterRequest): Promise<AuthResponse> => {
-        const response = await api.post<AuthResponse>('/auth/register', data);
+    register: async (data: RegisterRequest) => {
+        const response = await api.post('/auth/register', data);
         const { access_token, refresh_token } = response.data;
 
         setAccessToken(access_token);
@@ -37,7 +37,7 @@ export const authService = {
     login: async (data: LoginRequest): Promise<AuthResponse> => {
         const response = await api.post<AuthResponse>('/auth/login', data);
         const { access_token, refresh_token } = response.data;
-
+        console.log('Login response:', response.data);
         setAccessToken(access_token);
         setRefreshToken(refresh_token);
 

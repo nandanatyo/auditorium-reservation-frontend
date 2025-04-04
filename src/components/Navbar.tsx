@@ -7,6 +7,7 @@ import { UserContext } from "../context/UserContext"
 const Navbar = () => {
   const { user, logout } = useContext(UserContext)
   const navigate = useNavigate()
+  console.log("User in Navbar:", user)
 
   const handleLogout = () => {
     logout()

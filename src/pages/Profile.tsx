@@ -1,13 +1,20 @@
-"use client"
+"use client";
 
-import { useContext } from "react"
-import { Container, Row, Col, Card, Button, ListGroup } from "react-bootstrap"
-import { Link } from "react-router-dom"
-import { UserContext } from "../context/UserContext"
+import { useContext } from "react";
+import { Container, Row, Col, Card, Button, ListGroup } from "react-bootstrap";
+import { Link } from "react-router-dom";
+import { UserContext } from "../context/UserContext";
+import { useAuth } from "../contexts/auth/AuthProvider";
+import { AuthContext } from "../contexts/auth/AuthContext";
 
 const Profile = () => {
-  const { user } = useContext(UserContext)
+  const { user } = useContext(UserContext);
+  // const { user } = useAuth();
+  console.log("User in Profile:", user);
 
+  // if (isLoading) {
+  //   return <div>Loading...</div>;
+  // }
   if (!user) {
     return (
       <Container>
@@ -24,7 +31,7 @@ const Profile = () => {
           </Col>
         </Row>
       </Container>
-    )
+    );
   }
 
   return (
@@ -35,7 +42,9 @@ const Profile = () => {
             <Card.Body className="text-center">
               <div className="mb-3">
                 <img
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&size=128`}
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    user.name
+                  )}&background=random&size=128`}
                   alt={user.name}
                   className="rounded-circle img-fluid"
                   style={{ width: "150px", height: "150px" }}
@@ -45,7 +54,9 @@ const Profile = () => {
               <Card.Subtitle className="mb-2 text-muted">
                 {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
               </Card.Subtitle>
-              {user.organization && <p className="text-muted">{user.organization}</p>}
+              {user.organization && (
+                <p className="text-muted">{user.organization}</p>
+              )}
               <Link to="/edit-profile">
                 <Button variant="outline-primary">Edit Profile</Button>
               </Link>
@@ -100,7 +111,9 @@ const Profile = () => {
                 <Col sm={3}>
                   <strong>Role:</strong>
                 </Col>
-                <Col sm={9}>{user.role.charAt(0).toUpperCase() + user.role.slice(1)}</Col>
+                <Col sm={9}>
+                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                </Col>
               </Row>
               {user.organization && (
                 <>
@@ -149,8 +162,7 @@ const Profile = () => {
         </Col>
       </Row>
     </Container>
-  )
-}
+  );
+};
 
-export default Profile
-
+export default Profile;
