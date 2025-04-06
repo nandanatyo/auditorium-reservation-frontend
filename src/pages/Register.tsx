@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useContext } from "react";
+import { useState, useContext, useRef } from "react";
 import {
   Container,
   Row,
@@ -11,9 +11,12 @@ import {
   Button,
   Card,
   Alert,
+  Modal,
+  InputGroup,
 } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
+import { useAuth } from "../contexts/auth/AuthProvider";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -27,21 +30,124 @@ const Register = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [otpError, setOtpError] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   const { register } = useContext(UserContext);
   const navigate = useNavigate();
+
+  const { requestRegisterOTP } = useAuth();
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Reset email verification if email changes
+    if (name === "email" && isEmailVerified) {
+      setIsEmailVerified(false);
+    }
+  };
+
+  const validateEmail = () => {
+    if (!formData.email.trim()) {
+      setErrors((prev) => ({ ...prev, email: "Email is required" }));
+      return false;
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      setErrors((prev) => ({ ...prev, email: "Email is invalid" }));
+      return false;
+    }
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors.email;
+      return newErrors;
+    });
+    return true;
+  };
+
+  const handleSendVerification = async (e: React.MouseEvent) => {
+    e.preventDefault();
+
+    if (!validateEmail()) return;
+
+    try {
+      if (requestRegisterOTP) {
+        await requestRegisterOTP(formData.email);
+        console.log(formData.email);
+        console.log(requestRegisterOTP);
+      } else {
+        console.error("requestRegisterOTP is undefined");
+      }
+    } catch {
+      console.error("error at request register otp");
+    }
+
+    // Simulate sending OTP
+    setIsVerifying(true);
+
+    // Mock API request
+    setTimeout(() => {
+      setIsVerifying(false);
+      setShowOtpModal(true);
+      // In a real implementation, the backend would send an OTP to the user's email
+    }, 1500);
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    // Allow only digits
+    if (value && !/^\d*$/.test(value)) return;
+
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    // Auto-focus next input after entering a digit
+    if (value.length === 1 && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<any>) => {
+    const target = e.target as HTMLInputElement;
+
+    if (e.key === "Backspace" && index > 0 && !target.value) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleVerifyOtp = () => {
+    const otpValue = otp.join("");
+    if (otpValue.length !== 6) {
+      setOtpError("Please enter all 6 digits");
+      return;
+    }
+
+    setIsVerifying(true);
+
+    // Mock API verification
+    setTimeout(() => {
+      // For demo, let's assume 123456 is the valid OTP
+      if (otpValue === "123456") {
+        setIsEmailVerified(true);
+        setShowOtpModal(false);
+        setOtpError("");
+      } else {
+        setOtpError("Invalid OTP. Please try again.");
+      }
+      setIsVerifying(false);
+    }, 1500);
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) newErrors.name = "Name is required";
-    if (!formData.email.trim()) newErrors.email = "Email is required";
+    if (!isEmailVerified) newErrors.email = "Email verification is required";
     else if (!/\S+@\S+\.\S+/.test(formData.email))
       newErrors.email = "Email is invalid";
 
@@ -108,16 +214,36 @@ const Register = () => {
                   <Col md={6}>
                     <Form.Group className="mb-3">
                       <Form.Label>Email Address</Form.Label>
-                      <Form.Control
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        isInvalid={!!errors.email}
-                      />
-                      <Form.Control.Feedback type="invalid">
-                        {errors.email}
-                      </Form.Control.Feedback>
+                      <InputGroup>
+                        <Form.Control
+                          type="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          isInvalid={!!errors.email}
+                          isValid={isEmailVerified}
+                        />
+                        <Button
+                          variant={
+                            isEmailVerified ? "success" : "outline-secondary"
+                          }
+                          onClick={handleSendVerification}
+                          disabled={isVerifying || isEmailVerified}>
+                          {isVerifying
+                            ? "Sending..."
+                            : isEmailVerified
+                            ? "Verified"
+                            : "Verify"}
+                        </Button>
+                        <Form.Control.Feedback type="invalid">
+                          {errors.email}
+                        </Form.Control.Feedback>
+                      </InputGroup>
+                      {isEmailVerified && (
+                        <Form.Text className="text-success">
+                          Email verified successfully!
+                        </Form.Text>
+                      )}
                     </Form.Group>
                   </Col>
                 </Row>
@@ -195,6 +321,63 @@ const Register = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* OTP Verification Modal */}
+      <Modal show={showOtpModal} onHide={() => setShowOtpModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Email Verification</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="text-center mb-4">
+            Please enter the 6-digit verification code sent to
+            <strong> {formData.email}</strong>
+          </p>
+
+          <div className="d-flex justify-content-center mb-3">
+            {otp.map((digit, index) => (
+              <Form.Control
+                key={index}
+                ref={(el) => {
+                  otpInputRefs.current[index] = el;
+                }}
+                className="mx-1 text-center"
+                style={{ width: "45px" }}
+                value={digit}
+                onChange={(e) => handleOtpChange(index, e.target.value)}
+                onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                maxLength={1}
+                autoFocus={index === 0}
+              />
+            ))}
+          </div>
+
+          {otpError && (
+            <Alert variant="danger" className="text-center py-2">
+              {otpError}
+            </Alert>
+          )}
+
+          <div className="text-center mt-3">
+            <Button
+              variant="link"
+              disabled={isVerifying}
+              onClick={handleSendVerification}>
+              Resend Code
+            </Button>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowOtpModal(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleVerifyOtp}
+            disabled={isVerifying || otp.join("").length !== 6}>
+            {isVerifying ? "Verifying..." : "Verify"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };

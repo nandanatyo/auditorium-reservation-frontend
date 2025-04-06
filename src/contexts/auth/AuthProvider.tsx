@@ -8,7 +8,7 @@ import { userService } from "../../services/user.service";
 interface AuthProviderProps {
   children: ReactNode;
 }
-type UserRole = 'admin' | 'coordinator' | 'user';
+// type UserRole = 'admin' | 'coordinator' | 'user';
 
 // interface User {
 //   id: string;
@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // First try to get the current user directly
           try {
             const user = await userService.getCurrentUser();
-            console.log(user)
+            console.log(user);
             setUser(user);
           } catch (error) {
             // If that fails, try refreshing the token
@@ -59,16 +59,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false);
     try {
       // const response = await authService.login({ email, password });
-      const mockUser : any = {
+      const mockUser: any = {
         id: "1",
         name: "John Doe",
         email: email,
-        role: email.includes("admin") ? "admin" : email.includes("coordinator") ? "coordinator" : "user",
+        role: email.includes("admin")
+          ? "admin"
+          : email.includes("coordinator")
+          ? "coordinator"
+          : "user",
         bio: "Software developer with 5 years of experience",
         organization: "Tech Company",
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      } as const
+        updated_at: new Date().toISOString(),
+      } as const;
       setUser(mockUser);
       // console.log("Login response:", response);
       // setUser(response.data.user);
@@ -85,25 +89,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   ): Promise<void> => {
     setIsLoading(false);
     try {
-      // const response = await authService.register({
-      //   email,
-      //   otp,
-      //   name,
-      //   password,
-      // });
-      const mockUser : any = {
-        id: "1",
-        name: "John Doe",
-        email: email,
-        role: email.includes("admin") ? "admin" : email.includes("coordinator") ? "coordinator" : "user",
-        bio: "Software developer with 5 years of experience",
-        organization: "Tech Company",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
+      const response = await authService.register({
+        email,
+        otp,
+        name,
+        password,
+      });
+      // const mockUser : any = {
+      //   id: "1",
+      //   name: "John Doe",
+      //   email: email,
+      //   role: email.includes("admin") ? "admin" : email.includes("coordinator") ? "coordinator" : "user",
+      //   bio: "Software developer with 5 years of experience",
+      //   organization: "Tech Company",
+      //   created_at: new Date().toISOString(),
+      //   updated_at: new Date().toISOString()
+      // }
 
       // console.log("Register response:", response);
-      setUser(mockUser);
+      return response;
       // console.log("User registered successfully:", response.user);
     } finally {
       setIsLoading(false);
@@ -158,8 +162,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         logout,
         requestResetPasswordOTP,
         resetPassword,
-      }}
-    >
+      }}>
       {children}
     </AuthContext.Provider>
   );
