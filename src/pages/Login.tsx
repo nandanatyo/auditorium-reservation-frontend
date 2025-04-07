@@ -91,9 +91,6 @@ const Login = () => {
                   Don't have an account?{" "}
                   <Link to="/register">Register here</Link>
                 </p>
-                <p>
-                  <Link to="/forgot-password">Forgot your password?</Link>
-                </p>
               </div>
             </Card.Body>
           </Card>
