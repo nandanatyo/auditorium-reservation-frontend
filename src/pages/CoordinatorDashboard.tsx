@@ -89,43 +89,51 @@ const CoordinatorDashboard = () => {
     const fetchAllFeedbacks = async () => {
       try {
         setIsLoading((prev) => ({ ...prev, feedback: true }));
+        setFeedbacks([]); // Reset feedbacks before fetching
 
+        // Get approved conferences (both past and upcoming)
         const conferencesResp = await conferenceService.getConferences({
           limit: 20,
           status: "approved",
           order_by: "starts_at",
           order: "desc",
+          include_past: true, // Make sure to include past conferences to get all feedback
         });
 
-        const allFeedbacks: Feedback[] = [];
+        // Create an array to store all feedbacks
+        let allFeedbacks: Feedback[] = [];
 
+        // Only proceed if we have conferences
         if (conferencesResp.conferences.length > 0) {
-          await Promise.all(
-            conferencesResp.conferences.map(async (conference) => {
-              try {
-                const feedbackResp =
-                  await feedbackService.getConferenceFeedbacks(conference.id, {
-                    limit: 20,
-                  });
+          // Use a for...of loop instead of Promise.all for better error handling
+          for (const conference of conferencesResp.conferences) {
+            try {
+              const feedbackResp = await feedbackService.getConferenceFeedbacks(
+                conference.id,
+                { limit: 20 }
+              );
 
-                const feedbacksWithConference = feedbackResp.feedbacks.map(
-                  (feedback: any) => ({
-                    ...feedback,
-                    conference_title: conference.title,
-                  })
-                );
+              // Add conference title to each feedback item
+              const feedbacksWithConference = feedbackResp.feedbacks.map(
+                (feedback) => ({
+                  ...feedback,
+                  conference_title: conference.title,
+                })
+              );
 
-                allFeedbacks.push(...feedbacksWithConference);
-              } catch (error) {
-                console.error(
-                  `Error fetching feedback for conference ${conference.id}:`,
-                  error
-                );
-              }
-            })
-          );
+              // Add these feedbacks to our collection
+              allFeedbacks = [...allFeedbacks, ...feedbacksWithConference];
+            } catch (error) {
+              console.error(
+                `Error fetching feedback for conference ${conference.id}:`,
+                error
+              );
+              // Continue with the next conference even if this one fails
+            }
+          }
         }
 
+        // Update state with all collected feedbacks
         setFeedbacks(allFeedbacks);
         setError(null);
       } catch (err) {
@@ -331,8 +339,11 @@ const CoordinatorDashboard = () => {
                                 }>
                                 Reject
                               </Button>
-                              <Link
-                                to={`/proposals/${proposal.id}/edit`}></Link>
+                              <Link to={`/proposals/${proposal.id}/edit`}>
+                                <Button variant="outline-primary" size="sm">
+                                  Edit
+                                </Button>
+                              </Link>
                             </div>
                           )}
                         </td>
