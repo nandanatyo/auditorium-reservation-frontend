@@ -1,15 +1,69 @@
+// src/components/ConferenceList.tsx
+import { useEffect } from "react";
+import { Badge, Button, Alert } from "react-bootstrap";
 import { useConference } from "../contexts/conference/ConferenceProvider";
+import { useAuth } from "../contexts/auth/AuthProvider";
+import { ConferenceStatus } from "../types";
+import { formatDate } from "../utils/date";
 
 const ConferenceList = () => {
-  const { conferences, isLoading, deleteConference, updateConferenceStatus } =
-    useConference();
+  const {
+    conferences,
+    isLoading,
+    error,
+    loadConferences,
+    deleteConference,
+    updateConferenceStatus,
+  } = useConference();
+  const { user } = useAuth();
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
+  // Load conferences when component mounts
+  useEffect(() => {
+    // For event coordinators, show pending conferences by default
+    // For regular users, show all approved conferences
+    const status: ConferenceStatus =
+      user?.role === "event_coordinator" ? "pending" : "approved";
+
+    loadConferences({
+      status,
+      limit: 20,
+      order_by: "starts_at",
+      order: "asc",
+    });
+  }, [loadConferences, user]);
+
+  const handleApprove = async (id: string) => {
+    try {
+      await updateConferenceStatus(id, { status: "approved" });
+    } catch (error) {
+      console.error("Failed to approve conference:", error);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      await updateConferenceStatus(id, { status: "rejected" });
+    } catch (error) {
+      console.error("Failed to reject conference:", error);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this conference?")) {
+      try {
+        await deleteConference(id);
+      } catch (error) {
+        console.error("Failed to delete conference:", error);
+      }
+    }
   };
 
   if (isLoading) {
     return <div className="text-center py-4">Loading conferences...</div>;
+  }
+
+  if (error) {
+    return <Alert variant="danger">{error}</Alert>;
   }
 
   return (
@@ -23,8 +77,7 @@ const ConferenceList = () => {
           {conferences.map((conference) => (
             <div
               key={conference.id}
-              className="border rounded-lg p-4 shadow-sm"
-            >
+              className="border rounded-lg p-4 shadow-sm">
               <div className="flex justify-between items-start">
                 <h3 className="text-lg font-semibold">{conference.title}</h3>
                 <span
@@ -34,8 +87,7 @@ const ConferenceList = () => {
                       : conference.status === "pending"
                       ? "bg-yellow-100 text-yellow-800"
                       : "bg-red-100 text-red-800"
-                  }`}
-                >
+                  }`}>
                   {conference.status}
                 </span>
               </div>
@@ -67,36 +119,30 @@ const ConferenceList = () => {
               </div>
 
               <div className="mt-4 flex space-x-2">
-                {conference.status === "pending" && (
-                  <>
-                    <button
-                      onClick={() =>
-                        updateConferenceStatus(conference.id, {
-                          status: "approved",
-                        })
-                      }
-                      className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() =>
-                        updateConferenceStatus(conference.id, {
-                          status: "rejected",
-                        })
-                      }
-                      className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
-                    >
-                      Reject
-                    </button>
-                  </>
+                {user?.role === "event_coordinator" &&
+                  conference.status === "pending" && (
+                    <>
+                      <Button
+                        onClick={() => handleApprove(conference.id)}
+                        className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600">
+                        Approve
+                      </Button>
+                      <Button
+                        onClick={() => handleReject(conference.id)}
+                        className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600">
+                        Reject
+                      </Button>
+                    </>
+                  )}
+                {(user?.role === "admin" ||
+                  user?.role === "event_coordinator" ||
+                  user?.id === conference.host.id) && (
+                  <Button
+                    onClick={() => handleDelete(conference.id)}
+                    className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600">
+                    Delete
+                  </Button>
                 )}
-                <button
-                  onClick={() => deleteConference(conference.id)}
-                  className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
-                >
-                  Delete
-                </button>
               </div>
             </div>
           ))}

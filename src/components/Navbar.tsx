@@ -1,18 +1,16 @@
-"use client"
-
-import { useContext } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { UserContext } from "../context/UserContext"
+// In Navbar.tsx
+import { useAuth } from "../contexts/auth/AuthProvider";
+import { Link, useNavigate } from "react-router-dom";
 
 const Navbar = () => {
-  const { user, logout } = useContext(UserContext)
-  const navigate = useNavigate()
-  console.log("User in Navbar:", user)
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  console.log("User in Navbar:", user);
 
   const handleLogout = () => {
-    logout()
-    navigate("/login")
-  }
+    logout();
+    navigate("/login");
+  };
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark mb-4">
@@ -27,8 +25,7 @@ const Navbar = () => {
           data-bs-target="#navbarNav"
           aria-controls="navbarNav"
           aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
+          aria-label="Toggle navigation">
           <span className="navbar-toggler-icon"></span>
         </button>
         <div className="collapse navbar-collapse" id="navbarNav">
@@ -51,8 +48,7 @@ const Navbar = () => {
                   id="navbarDropdown"
                   role="button"
                   data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                >
+                  aria-expanded="false">
                   My Account
                 </a>
                 <ul className="dropdown-menu" aria-labelledby="navbarDropdown">
@@ -82,7 +78,7 @@ const Navbar = () => {
                 </ul>
               </li>
             )}
-            {user && user.role === "coordinator" && (
+            {user && user.role === "event_coordinator" && (
               <li className="nav-item">
                 <Link className="nav-link" to="/coordinator">
                   Coordinator Dashboard
@@ -106,11 +102,12 @@ const Navbar = () => {
                   id="userDropdown"
                   role="button"
                   data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                >
+                  aria-expanded="false">
                   {user.name}
                 </a>
-                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                <ul
+                  className="dropdown-menu dropdown-menu-end"
+                  aria-labelledby="userDropdown">
                   <li>
                     <Link className="dropdown-item" to="/profile">
                       Profile
@@ -149,8 +146,7 @@ const Navbar = () => {
         </div>
       </div>
     </nav>
-  )
-}
+  );
+};
 
-export default Navbar
-
+export default Navbar;

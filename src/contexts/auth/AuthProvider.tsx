@@ -1,125 +1,79 @@
-import React, { useState, useEffect, ReactNode, useContext } from "react";
-import { AuthContext } from "./AuthContext";
+import React, { createContext, useState, useEffect, useContext } from "react";
 import { authService } from "../../services/auth.service";
-import { getAccessToken, getRefreshToken } from "../../utils/storage";
-import { User } from "../../types";
 import { userService } from "../../services/user.service";
+import {
+  User,
+  LoginRequest,
+  RegisterRequest,
+  RegisterOTPRequest,
+  CheckOTPRequest,
+  ResetPasswordOTPRequest,
+  ResetPasswordRequest,
+} from "../../types";
+import { getAccessToken, isAuthenticated } from "../../utils/storage";
 
-interface AuthProviderProps {
-  children: ReactNode;
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (data: LoginRequest) => Promise<void>;
+  register: (data: RegisterRequest) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+  requestRegisterOTP: (email: string) => Promise<void>;
+  checkRegisterOTP: (email: string, otp: string) => Promise<void>;
+  requestResetPasswordOTP: (email: string) => Promise<void>;
+  resetPassword: (data: ResetPasswordRequest) => Promise<void>;
 }
-// type UserRole = 'admin' | 'coordinator' | 'user';
 
-// interface User {
-//   id: string;
-//   name: string;
-//   email: string;
-//   role: UserRole;
-//   bio?: string;
-//   organization?: string;
-//   created_at?: string;
-//   updated_at?: string;
-// }
+const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Check if user is already authenticated on mount
   useEffect(() => {
-    const initAuth = async () => {
-      const accessToken = getAccessToken();
-      const refreshToken = getRefreshToken();
-
-      if (accessToken && refreshToken) {
-        try {
-          // First try to get the current user directly
-          try {
-            const user = await userService.getCurrentUser();
-            console.log(user);
-            setUser(user);
-          } catch (error) {
-            // If that fails, try refreshing the token
-            console.error("Failed to autehnticate with refresh token", error);
-            const authResponse = await authService.refreshToken();
-            setUser(authResponse.user);
-          }
-        } catch (error) {
-          console.error("Failed to authenticate:", error);
+    const loadUser = async () => {
+      setIsLoading(true);
+      try {
+        if (isAuthenticated()) {
+          const userData = await userService.getCurrentUser();
+          setUser(userData);
         }
+      } catch (error) {
+        console.error("Failed to load user:", error);
+      } finally {
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
     };
 
-    initAuth();
+    loadUser();
   }, []);
 
-  const login = async (email: string, password: string): Promise<void> => {
-    setIsLoading(false);
+  const login = async (data: LoginRequest) => {
+    setIsLoading(true);
     try {
-      // const response = await authService.login({ email, password });
-      const mockUser: any = {
-        id: "1",
-        name: "John Doe",
-        email: email,
-        role: email.includes("admin")
-          ? "admin"
-          : email.includes("coordinator")
-          ? "coordinator"
-          : "user",
-        bio: "Software developer with 5 years of experience",
-        organization: "Tech Company",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      } as const;
-      setUser(mockUser);
-      // console.log("Login response:", response);
-      // setUser(response.data.user);
+      const response = await authService.login(data);
+      setUser(response.user);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (
-    email: string,
-    otp: string,
-    name: string,
-    password: string
-  ): Promise<void> => {
-    setIsLoading(false);
+  const register = async (data: RegisterRequest) => {
+    setIsLoading(true);
     try {
-      const response = await authService.register({
-        email,
-        otp,
-        name,
-        password,
-      });
-      // const mockUser : any = {
-      //   id: "1",
-      //   name: "John Doe",
-      //   email: email,
-      //   role: email.includes("admin") ? "admin" : email.includes("coordinator") ? "coordinator" : "user",
-      //   bio: "Software developer with 5 years of experience",
-      //   organization: "Tech Company",
-      //   created_at: new Date().toISOString(),
-      //   updated_at: new Date().toISOString()
-      // }
-
-      // console.log("Register response:", response);
-      return response;
-      // console.log("User registered successfully:", response.user);
+      const response = await authService.register(data);
+      setUser(response.user);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const requestRegisterOTP = async (email: string): Promise<void> => {
-    await authService.requestRegisterOTP({ email });
-  };
-
-  const logout = async (): Promise<void> => {
-    setIsLoading(false);
+  const logout = async () => {
+    setIsLoading(true);
     try {
       await authService.logout();
       setUser(null);
@@ -128,22 +82,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const requestResetPasswordOTP = async (email: string): Promise<void> => {
+  const refreshUser = async () => {
+    setIsLoading(true);
+    try {
+      const userData = await userService.getCurrentUser();
+      setUser(userData);
+    } catch (error) {
+      console.error("Failed to refresh user:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const requestRegisterOTP = async (email: string) => {
+    await authService.requestRegisterOTP({ email });
+  };
+
+  const checkRegisterOTP = async (email: string, otp: string) => {
+    await authService.checkRegisterOTP({ email, otp });
+  };
+
+  const requestResetPasswordOTP = async (email: string) => {
     await authService.requestResetPasswordOTP({ email });
   };
 
-  const resetPassword = async (
-    email: string,
-    otp: string,
-    newPassword: string
-  ): Promise<void> => {
-    setIsLoading(false);
+  const resetPassword = async (data: ResetPasswordRequest) => {
+    setIsLoading(true);
     try {
-      const response = await authService.resetPassword({
-        email,
-        otp,
-        new_password: newPassword,
-      });
+      const response = await authService.resetPassword(data);
       setUser(response.user);
     } finally {
       setIsLoading(false);
@@ -158,8 +124,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isLoading,
         login,
         register,
-        requestRegisterOTP,
         logout,
+        refreshUser,
+        requestRegisterOTP,
+        checkRegisterOTP,
         requestResetPasswordOTP,
         resetPassword,
       }}>
@@ -168,6 +136,4 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 };
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export const useAuth = () => useContext(AuthContext);

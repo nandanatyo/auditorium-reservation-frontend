@@ -1,36 +1,70 @@
-"use client"
-
-import { useState, useContext } from "react"
-import { Container, Row, Col, Card, Badge, Button } from "react-bootstrap"
-import { Link } from "react-router-dom"
-import { UserContext } from "../context/UserContext"
+// src/pages/MySessions.tsx
+import { useState, useEffect, useCallback } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Badge,
+  Button,
+  Alert,
+} from "react-bootstrap";
+import { Link } from "react-router-dom";
+import { useAuth } from "../contexts/auth/AuthProvider";
+import { useRegistration } from "../contexts/registration/RegistrationProvider";
+import { Conference, ApiError } from "../types";
+import { formatDate } from "../utils/date";
 
 const MySessions = () => {
-  const { user } = useContext(UserContext)
+  const { user } = useAuth();
+  const { getRegisteredConferences, isLoading } = useRegistration();
+  const [sessions, setSessions] = useState<Conference[]>([]);
+  const [error, setError] = useState("");
+  const [dataFetched, setDataFetched] = useState(false);
 
-  // Mock sessions data - in a real app, you would fetch this from an API
-  const [sessions] = useState([
-    {
-      id: "1",
-      title: "Introduction to GraphQL",
-      date: "2023-06-15",
-      time: "10:00 AM - 11:30 AM",
-      location: "Room A",
-      attendees: 25,
-      maxAttendees: 30,
-      category: "Backend",
-    },
-    {
-      id: "2",
-      title: "React Performance Optimization",
-      date: "2023-06-16",
-      time: "2:00 PM - 3:30 PM",
-      location: "Room B",
-      attendees: 35,
-      maxAttendees: 40,
-      category: "Frontend",
-    },
-  ])
+  // Menggunakan useCallback untuk mencegah fungsi dibuat ulang pada setiap render
+  const fetchRegisteredSessions = useCallback(async () => {
+    if (!user || !user.id || dataFetched) return;
+
+    try {
+      // Get registered conferences using the API
+      const response = await getRegisteredConferences(user.id, {
+        limit: 20,
+        include_past: false,
+      });
+
+      // Set the sessions from the response
+      if (response && response.conferences) {
+        setSessions(response.conferences);
+      } else {
+        // Handle case where response is incorrect
+        console.error("Unexpected response format:", response);
+        setSessions([]);
+      }
+
+      // Menandai bahwa data telah diambil
+      setDataFetched(true);
+    } catch (err) {
+      console.error("Failed to load registered sessions:", err);
+      const apiError = err as ApiError;
+      setError(
+        apiError.data?.message ||
+          "Failed to load your sessions. Please try again."
+      );
+      setSessions([]); // Reset sessions on error
+      setDataFetched(true); // Menandai bahwa data telah dicoba diambil
+    }
+  }, [user, getRegisteredConferences, dataFetched]);
+
+  // Load user's registered conferences when component mounts
+  useEffect(() => {
+    fetchRegisteredSessions();
+  }, [fetchRegisteredSessions]);
+
+  // Tampilkan loading hanya jika data belum diambil dan API masih loading
+  if (isLoading && !dataFetched) {
+    return <div className="text-center py-4">Loading your sessions...</div>;
+  }
 
   if (!user) {
     return (
@@ -44,7 +78,15 @@ const MySessions = () => {
           </Card.Body>
         </Card>
       </Container>
-    )
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="py-4">
+        <Alert variant="danger">{error}</Alert>
+      </Container>
+    );
   }
 
   return (
@@ -54,9 +96,9 @@ const MySessions = () => {
       {sessions.length === 0 ? (
         <Card>
           <Card.Body className="text-center">
-            <p>You don't have any sessions yet.</p>
-            <Link to="/create-proposal">
-              <Button variant="primary">Create a Proposal</Button>
+            <p>You're not registered for any sessions yet.</p>
+            <Link to="/sessions">
+              <Button variant="primary">Browse Sessions</Button>
             </Link>
           </Card.Body>
         </Card>
@@ -66,30 +108,41 @@ const MySessions = () => {
             <Col md={6} className="mb-4" key={session.id}>
               <Card>
                 <Card.Header className="d-flex justify-content-between align-items-center">
-                  <Badge bg="primary">{session.category}</Badge>
+                  <Badge bg="primary">{session.title.split(" ")[0]}</Badge>
+                  <Badge
+                    bg={
+                      new Date(session.starts_at) > new Date()
+                        ? "success"
+                        : "secondary"
+                    }>
+                    {new Date(session.starts_at) > new Date()
+                      ? "Upcoming"
+                      : "Past"}
+                  </Badge>
                 </Card.Header>
                 <Card.Body>
                   <Card.Title>{session.title}</Card.Title>
                   <div className="mb-3">
                     <div>
-                      <strong>Date:</strong> {session.date}
+                      <strong>Date:</strong> {formatDate(session.starts_at)}
                     </div>
                     <div>
-                      <strong>Time:</strong> {session.time}
+                      <strong>Time:</strong>{" "}
+                      {new Date(session.starts_at).toLocaleTimeString()} -{" "}
+                      {new Date(session.ends_at).toLocaleTimeString()}
                     </div>
                     <div>
-                      <strong>Location:</strong> {session.location}
+                      <strong>Speaker:</strong> {session.speaker_name} (
+                      {session.speaker_title})
                     </div>
                     <div>
-                      <strong>Attendees:</strong> {session.attendees}/{session.maxAttendees}
+                      <strong>Attendees:</strong> {session.seats_taken || 0}/
+                      {session.seats}
                     </div>
                   </div>
                   <div className="d-flex gap-2">
-                    <Link to={`/edit-session/${session.id}`}>
-                      <Button variant="outline-primary">Edit</Button>
-                    </Link>
                     <Link to={`/sessions/${session.id}`}>
-                      <Button variant="outline-secondary">View Details</Button>
+                      <Button variant="outline-primary">View Details</Button>
                     </Link>
                   </div>
                 </Card.Body>
@@ -99,8 +152,7 @@ const MySessions = () => {
         </Row>
       )}
     </Container>
-  )
-}
+  );
+};
 
-export default MySessions
-
+export default MySessions;

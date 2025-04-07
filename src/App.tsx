@@ -22,6 +22,8 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.css";
 import { AuthProvider } from "./contexts/auth/AuthProvider";
 import { ConferenceProvider } from "./contexts/conference/ConferenceProvider";
+import { FeedbackProvider } from "./contexts/feedback/FeedbackProvider";
+import { RegistrationProvider } from "./contexts/registration/RegistrationProvider";
 import Conferences from "./pages/Conferences";
 
 function App() {
@@ -29,47 +31,57 @@ function App() {
     <AuthProvider>
       <UserProvider>
         <ConferenceProvider>
-          <Router>
-            <div className="d-flex flex-column min-vh-100">
-              <Navbar />
-              <main className="flex-grow-1 container py-4">
-                <div className="content-wrapper bg-white bg-opacity-75 rounded shadow p-3 mb-5">
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/sessions" element={<Sessions />} />
-                    <Route path="/sessions/:id" element={<SessionDetails />} />
-                    <Route path="/users/:id" element={<UserProfile />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/edit-profile" element={<EditProfile />} />
-                    <Route
-                      path="/create-proposal"
-                      element={<CreateProposal />}
-                    />
-                    <Route path="/my-proposals" element={<MyProposals />} />
-                    <Route
-                      path="/my-proposals/:id"
-                      element={<ProposalDetails />}
-                    />
-                    <Route
-                      path="/edit-proposal/:id"
-                      element={<EditProposal />}
-                    />
-                    <Route path="/my-sessions" element={<MySessions />} />
-                    <Route path="/edit-session/:id" element={<EditSession />} />
-                    <Route path="/conference" element={<Conferences />} />
-                    <Route
-                      path="/coordinator"
-                      element={<CoordinatorDashboard />}
-                    />
-                    <Route path="/admin" element={<AdminDashboard />} />
-                  </Routes>
+          <FeedbackProvider>
+            <RegistrationProvider>
+              <Router>
+                <div className="d-flex flex-column min-vh-100">
+                  <Navbar />
+                  <main className="flex-grow-1 container py-4">
+                    <div className="content-wrapper bg-white bg-opacity-75 rounded shadow p-3 mb-5">
+                      <Routes>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/register" element={<Register />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/sessions" element={<Sessions />} />
+                        <Route
+                          path="/sessions/:id"
+                          element={<SessionDetails />}
+                        />
+                        <Route path="/users/:id" element={<UserProfile />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/edit-profile" element={<EditProfile />} />
+                        <Route
+                          path="/create-proposal"
+                          element={<CreateProposal />}
+                        />
+                        <Route path="/my-proposals" element={<MyProposals />} />
+                        <Route
+                          path="/my-proposals/:id"
+                          element={<ProposalDetails />}
+                        />
+                        <Route
+                          path="/edit-proposal/:id"
+                          element={<EditProposal />}
+                        />
+                        <Route path="/my-sessions" element={<MySessions />} />
+                        <Route
+                          path="/edit-session/:id"
+                          element={<EditSession />}
+                        />
+                        <Route path="/conference" element={<Conferences />} />
+                        <Route
+                          path="/coordinator"
+                          element={<CoordinatorDashboard />}
+                        />
+                        <Route path="/admin" element={<AdminDashboard />} />
+                      </Routes>
+                    </div>
+                  </main>
+                  <Footer />
                 </div>
-              </main>
-              <Footer />
-            </div>
-          </Router>
+              </Router>
+            </RegistrationProvider>
+          </FeedbackProvider>
         </ConferenceProvider>
       </UserProvider>
     </AuthProvider>

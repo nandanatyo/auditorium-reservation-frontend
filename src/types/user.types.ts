@@ -1,44 +1,34 @@
-export type UserRole = "user" | "admin" | "event_coordinator";
-
-export interface User {
-    id: string | null;
-    name: string | null;
-    email: string | null;
-    role: UserRole | null;
-    bio: string | null;
-    created_at: string | null;
-    updated_at: string | null;
-}
+import { User, UserRole } from "./auth.types";
 
 export interface UserMinimal {
-    id: string | null;
-    name: string | null;
-    role: UserRole | null;
-    bio: string | null;
+  id: string | null;
+  name: string | null;
+  role: UserRole | null;
+  bio: string | null;
 }
 
 export interface CreateUserRequest {
-    name: string;
-    email: string;
-    password: string;
-    role: "event_coordinator" | "user";
-}
-
-export interface CreateUserResponse {
-    user: {
-        id: string;
-    };
+  name: string;
+  email: string;
+  password: string;
+  role: "event_coordinator" | "user";
 }
 
 export interface UpdateUserProfileRequest {
-    name?: string | null;
-    bio?: string | null;
+  name?: string;
+  bio?: string;
+}
+
+export interface CreateUserResponse {
+  user: {
+    id: string;
+  };
 }
 
 export interface GetUserResponse {
-    user: User;
+  user: User;
 }
 
 export interface GetUserMinimalResponse {
-    user: UserMinimal;
+  user: UserMinimal;
 }

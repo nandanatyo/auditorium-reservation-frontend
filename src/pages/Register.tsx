@@ -1,8 +1,5 @@
-"use client";
-
-import type React from "react";
-
-import { useState, useContext, useRef } from "react";
+// src/pages/Register.tsx
+import { useState, useRef } from "react";
 import {
   Container,
   Row,
@@ -15,8 +12,9 @@ import {
   InputGroup,
 } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
-import { UserContext } from "../context/UserContext";
 import { useAuth } from "../contexts/auth/AuthProvider";
+import { authService } from "../services/auth.service";
+import { RegisterRequest, ApiError } from "../types";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -24,7 +22,6 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    organization: "",
     bio: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -37,10 +34,8 @@ const Register = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const { register } = useContext(UserContext);
+  const { register, requestRegisterOTP } = useAuth();
   const navigate = useNavigate();
-
-  const { requestRegisterOTP } = useAuth();
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -52,6 +47,35 @@ const Register = () => {
     if (name === "email" && isEmailVerified) {
       setIsEmailVerified(false);
     }
+
+    // Clear email error when user starts typing in the email field
+    if (name === "email" && errors.email) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.email;
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) newErrors.name = "Name is required";
+    if (!isEmailVerified) newErrors.email = "Email verification is required";
+    else if (!/\S+@\S+\.\S+/.test(formData.email))
+      newErrors.email = "Email is invalid";
+
+    if (!formData.password) newErrors.password = "Password is required";
+    else if (formData.password.length < 8)
+      newErrors.password = "Password must be at least 8 characters";
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const validateEmail = () => {
@@ -76,26 +100,29 @@ const Register = () => {
     if (!validateEmail()) return;
 
     try {
-      if (requestRegisterOTP) {
-        await requestRegisterOTP(formData.email);
-        console.log(formData.email);
-        console.log(requestRegisterOTP);
-      } else {
-        console.error("requestRegisterOTP is undefined");
-      }
-    } catch {
-      console.error("error at request register otp");
-    }
-
-    // Simulate sending OTP
-    setIsVerifying(true);
-
-    // Mock API request
-    setTimeout(() => {
-      setIsVerifying(false);
+      setIsVerifying(true);
+      // Original implementation - keeping this exactly as it was
+      await requestRegisterOTP(formData.email);
       setShowOtpModal(true);
-      // In a real implementation, the backend would send an OTP to the user's email
-    }, 1500);
+      setOtpError("");
+    } catch (error) {
+      console.error("Failed to request OTP:", error);
+      const apiError = error as ApiError;
+
+      // Only setting an error message, but keeping the original error handling logic
+      if (apiError.data?.error_code === "EMAIL_ALREADY_REGISTERED") {
+        setErrors((prev) => ({
+          ...prev,
+          email: "Email already registered. Please login or use another email.",
+        }));
+      } else {
+        setOtpError(
+          apiError.data?.message || "Failed to send verification code"
+        );
+      }
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -120,7 +147,7 @@ const Register = () => {
     }
   };
 
-  const handleVerifyOtp = () => {
+  const handleVerifyOtp = async () => {
     const otpValue = otp.join("");
     if (otpValue.length !== 6) {
       setOtpError("Please enter all 6 digits");
@@ -129,38 +156,22 @@ const Register = () => {
 
     setIsVerifying(true);
 
-    // Mock API verification
-    setTimeout(() => {
-      // For demo, let's assume 123456 is the valid OTP
-      if (otpValue === "123456") {
-        setIsEmailVerified(true);
-        setShowOtpModal(false);
-        setOtpError("");
-      } else {
-        setOtpError("Invalid OTP. Please try again.");
-      }
+    try {
+      await authService.checkRegisterOTP({
+        email: formData.email,
+        otp: otpValue,
+      });
+
+      setIsEmailVerified(true);
+      setShowOtpModal(false);
+      setOtpError("");
+    } catch (error) {
+      console.error("Failed to verify OTP:", error);
+      const apiError = error as ApiError;
+      setOtpError(apiError.data?.message || "Invalid OTP. Please try again.");
+    } finally {
       setIsVerifying(false);
-    }, 1500);
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.name.trim()) newErrors.name = "Name is required";
-    if (!isEmailVerified) newErrors.email = "Email verification is required";
-    else if (!/\S+@\S+\.\S+/.test(formData.email))
-      newErrors.email = "Email is invalid";
-
-    if (!formData.password) newErrors.password = "Password is required";
-    else if (formData.password.length < 6)
-      newErrors.password = "Password must be at least 6 characters";
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
     }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -172,11 +183,31 @@ const Register = () => {
     setSubmitError("");
 
     try {
-      await register(formData);
+      const registerData: RegisterRequest = {
+        email: formData.email,
+        otp: otp.join(""),
+        name: formData.name,
+        password: formData.password,
+      };
+
+      await register(registerData);
       navigate("/profile");
     } catch (error) {
-      console.log(error);
-      setSubmitError("Registration failed. Please try again.");
+      console.error("Registration failed:", error);
+      const apiError = error as ApiError;
+
+      // Check for email already used error during registration
+      if (apiError.data?.error_code === "EMAIL_ALREADY_REGISTERED") {
+        setErrors((prev) => ({
+          ...prev,
+          email: "Email already registered. Please login or use another email.",
+        }));
+        setSubmitError("Registration failed: Email already in use");
+      } else {
+        setSubmitError(
+          apiError.data?.message || "Registration failed. Please try again."
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -283,16 +314,6 @@ const Register = () => {
                 </Row>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Organization (Optional)</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="organization"
-                    value={formData.organization}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
                   <Form.Label>Bio (Optional)</Form.Label>
                   <Form.Control
                     as="textarea"
@@ -308,7 +329,7 @@ const Register = () => {
                   <Button
                     variant="primary"
                     type="submit"
-                    disabled={isSubmitting}>
+                    disabled={isSubmitting || !isEmailVerified}>
                     {isSubmitting ? "Registering..." : "Register"}
                   </Button>
                 </div>

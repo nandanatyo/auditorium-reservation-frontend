@@ -1,3 +1,4 @@
+// src/services/api.ts
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import config from "../config/config";
 import {
@@ -14,8 +15,9 @@ import {
   AuthResponse,
 } from "../types";
 
+// Create axios instance with base URL from configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: config.apiUrl,
   headers: {
     "Content-Type": "application/json",
   },
@@ -46,7 +48,8 @@ api.interceptors.response.use(
       error.response?.status === 401 &&
       !originalRequest._retry &&
       getRefreshToken() &&
-      error.response.data?.error_code !== "INVALID_REFRESH_TOKEN"
+      error.response.data?.error_code !== "INVALID_REFRESH_TOKEN" &&
+      error.response.data?.error_code !== "NO_BEARER_TOKEN"
     ) {
       originalRequest._retry = true;
 
@@ -75,9 +78,11 @@ api.interceptors.response.use(
     }
 
     // Create a more detailed error
-    const apiError: ApiError = new Error(error.message);
-    apiError.status = error.response?.status;
-    apiError.data = error.response?.data || undefined;
+    const apiError = new ApiError(
+      error.response?.data?.message || error.message,
+      error.response?.status,
+      error.response?.data
+    );
 
     return Promise.reject(apiError);
   }

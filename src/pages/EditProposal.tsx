@@ -1,68 +1,169 @@
-"use client"
-
-import type React from "react"
-
-import { useState, useEffect } from "react"
-import { Container, Row, Col, Form, Button, Card, Alert } from "react-bootstrap"
-import { useParams, useNavigate } from "react-router-dom"
+// src/pages/EditProposal.tsx
+import { useState, useEffect, useCallback } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Form,
+  Button,
+  Card,
+  Alert,
+} from "react-bootstrap";
+import { useParams, useNavigate } from "react-router-dom";
+import { useConference } from "../contexts/conference/ConferenceProvider";
+import { Conference, UpdateConferenceRequest, ApiError } from "../types";
 
 const EditProposal = () => {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const [formData, setFormData] = useState({
-    title: "",
-    category: "",
-    description: "",
-    objectives: "",
-    prerequisites: "",
-    duration: "",
-    maxAttendees: "",
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { getConference, updateConference, isLoading, error } = useConference();
 
-  const categories = ["Frontend", "Backend", "Programming", "Design", "Architecture", "DevOps", "Mobile", "Other"]
+  const [conference, setConference] = useState<Conference | null>(null);
+  const [formData, setFormData] = useState<UpdateConferenceRequest>({});
+  const [success, setSuccess] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localLoading, setLocalLoading] = useState(true); // Add local loading state
 
-  // Mock data loading - in a real app, you would fetch this from an API
+  // Load conference data when component mounts
   useEffect(() => {
-    // Simulate API call to get proposal data
-    setTimeout(() => {
-      setFormData({
-        title: "Building Scalable React Applications",
-        category: "Frontend",
-        description:
-          "Learn best practices for building scalable React applications with proper architecture, state management, and performance optimization techniques.",
-        objectives:
-          "Understand React architecture patterns, learn state management best practices, implement performance optimization techniques.",
-        prerequisites: "Basic knowledge of React and JavaScript.",
-        duration: "60",
-        maxAttendees: "30",
-      })
-    }, 500)
-  }, [id])
+    let isMounted = true; // Track component mounted state
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+    if (!id) {
+      setLocalLoading(false);
+      return;
+    }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    const fetchConference = async () => {
+      try {
+        setLocalLoading(true);
+        const conferenceData = await getConference(id);
 
-    setIsSubmitting(true)
-    setError("")
+        // Only update state if component is still mounted
+        if (isMounted) {
+          setConference(conferenceData);
 
-    // In a real app, you would make an API call to update the proposal
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setSuccess(true)
+          // Set form data from conference
+          setFormData({
+            title: conferenceData.title,
+            description: conferenceData.description,
+            speaker_name: conferenceData.speaker_name,
+            speaker_title: conferenceData.speaker_title,
+            target_audience: conferenceData.target_audience,
+            prerequisites: conferenceData.prerequisites,
+            seats: conferenceData.seats,
+            starts_at: new Date(conferenceData.starts_at)
+              .toISOString()
+              .slice(0, 16), // Format for datetime-local input
+            ends_at: new Date(conferenceData.ends_at)
+              .toISOString()
+              .slice(0, 16),
+          });
+
+          setLocalLoading(false);
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error("Failed to load conference:", err);
+          const apiError = err as ApiError;
+          setFormError(
+            apiError.data?.message || "Failed to load conference details"
+          );
+          setLocalLoading(false);
+        }
+      }
+    };
+
+    fetchConference();
+
+    // Cleanup function to handle unmounting
+    return () => {
+      isMounted = false;
+    };
+  }, [id]); // Remove getConference from dependency array
+
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "seats" ? parseInt(value) || 0 : value,
+    }));
+  };
+
+  const handleChangePrerequisites = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      prerequisites: value || null,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !conference) return;
+
+    setIsSubmitting(true);
+    setFormError("");
+
+    try {
+      // Only send changed fields
+      const updates: UpdateConferenceRequest = {};
+
+      if (formData.title !== conference.title) updates.title = formData.title;
+      if (formData.description !== conference.description)
+        updates.description = formData.description;
+      if (formData.speaker_name !== conference.speaker_name)
+        updates.speaker_name = formData.speaker_name;
+      if (formData.speaker_title !== conference.speaker_title)
+        updates.speaker_title = formData.speaker_title;
+      if (formData.target_audience !== conference.target_audience)
+        updates.target_audience = formData.target_audience;
+      if (formData.prerequisites !== conference.prerequisites)
+        updates.prerequisites = formData.prerequisites;
+      if (formData.seats !== conference.seats) updates.seats = formData.seats;
+
+      // Format dates for API
+      const newStartsAt = new Date(formData.starts_at as string).toISOString();
+      const newEndsAt = new Date(formData.ends_at as string).toISOString();
+
+      if (newStartsAt !== conference.starts_at) updates.starts_at = newStartsAt;
+      if (newEndsAt !== conference.ends_at) updates.ends_at = newEndsAt;
+
+      await updateConference(id, updates);
+      setSuccess(true);
 
       // Reset success message after 3 seconds
       setTimeout(() => {
-        setSuccess(false)
-      }, 3000)
-    }, 1000)
+        setSuccess(false);
+      }, 3000);
+    } catch (err) {
+      console.error("Failed to update conference:", err);
+      const apiError = err as ApiError;
+      setFormError(
+        apiError.data?.message || "Failed to update proposal. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Use local loading state instead of global loading state
+  if (localLoading) {
+    return <div className="text-center py-4">Loading proposal details...</div>;
+  }
+
+  if (error) {
+    return <Alert variant="danger">{error}</Alert>;
+  }
+
+  if (!conference && !localLoading) {
+    return <Alert variant="warning">Proposal not found</Alert>;
   }
 
   return (
@@ -72,8 +173,10 @@ const EditProposal = () => {
           <Card>
             <Card.Header as="h4">Edit Proposal</Card.Header>
             <Card.Body>
-              {error && <Alert variant="danger">{error}</Alert>}
-              {success && <Alert variant="success">Proposal updated successfully!</Alert>}
+              {formError && <Alert variant="danger">{formError}</Alert>}
+              {success && (
+                <Alert variant="success">Proposal updated successfully!</Alert>
+              )}
 
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
@@ -81,23 +184,11 @@ const EditProposal = () => {
                   <Form.Control
                     type="text"
                     name="title"
-                    value={formData.title}
+                    value={formData.title || ""}
                     onChange={handleChange}
                     placeholder="Enter a descriptive title for your session"
                     required
                   />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Category</Form.Label>
-                  <Form.Select name="category" value={formData.category} onChange={handleChange} required>
-                    <option value="">Select a category</option>
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </Form.Select>
                 </Form.Group>
 
                 <Form.Group className="mb-3">
@@ -106,7 +197,7 @@ const EditProposal = () => {
                     as="textarea"
                     rows={4}
                     name="description"
-                    value={formData.description}
+                    value={formData.description || ""}
                     onChange={handleChange}
                     placeholder="Provide a detailed description of your session"
                     required
@@ -114,65 +205,101 @@ const EditProposal = () => {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Learning Objectives</Form.Label>
+                  <Form.Label>Speaker Name</Form.Label>
                   <Form.Control
-                    as="textarea"
-                    rows={3}
-                    name="objectives"
-                    value={formData.objectives}
+                    type="text"
+                    name="speaker_name"
+                    value={formData.speaker_name || ""}
                     onChange={handleChange}
-                    placeholder="What will attendees learn from your session?"
+                    placeholder="Speaker's full name"
                     required
                   />
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Prerequisites</Form.Label>
+                  <Form.Label>Speaker Title</Form.Label>
                   <Form.Control
-                    as="textarea"
-                    rows={2}
-                    name="prerequisites"
-                    value={formData.prerequisites}
+                    type="text"
+                    name="speaker_title"
+                    value={formData.speaker_title || ""}
                     onChange={handleChange}
-                    placeholder="What should attendees already know before attending your session?"
+                    placeholder="Speaker's position/role"
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Target Audience</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="target_audience"
+                    value={formData.target_audience || ""}
+                    onChange={handleChange}
+                    placeholder="Who should attend?"
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Prerequisites (Optional)</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="prerequisites"
+                    value={formData.prerequisites || ""}
+                    onChange={handleChangePrerequisites}
+                    placeholder="Required knowledge/skills"
                   />
                 </Form.Group>
 
                 <Row>
                   <Col md={6}>
                     <Form.Group className="mb-3">
-                      <Form.Label>Duration (minutes)</Form.Label>
-                      <Form.Select name="duration" value={formData.duration} onChange={handleChange} required>
-                        <option value="30">30 minutes</option>
-                        <option value="45">45 minutes</option>
-                        <option value="60">60 minutes</option>
-                        <option value="90">90 minutes</option>
-                        <option value="120">120 minutes</option>
-                      </Form.Select>
+                      <Form.Label>Start Date and Time</Form.Label>
+                      <Form.Control
+                        type="datetime-local"
+                        name="starts_at"
+                        value={formData.starts_at as string}
+                        onChange={handleChange}
+                        required
+                      />
                     </Form.Group>
                   </Col>
-
                   <Col md={6}>
                     <Form.Group className="mb-3">
-                      <Form.Label>Maximum Attendees</Form.Label>
+                      <Form.Label>End Date and Time</Form.Label>
                       <Form.Control
-                        type="number"
-                        name="maxAttendees"
-                        value={formData.maxAttendees}
+                        type="datetime-local"
+                        name="ends_at"
+                        value={formData.ends_at as string}
                         onChange={handleChange}
-                        min="5"
-                        max="100"
                         required
                       />
                     </Form.Group>
                   </Col>
                 </Row>
 
+                <Form.Group className="mb-3">
+                  <Form.Label>Available Seats</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="seats"
+                    value={formData.seats || 0}
+                    onChange={handleChange}
+                    min="1"
+                    required
+                  />
+                </Form.Group>
+
                 <div className="d-flex justify-content-between">
-                  <Button variant="secondary" onClick={() => navigate(`/my-proposals/${id}`)}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => navigate(`/my-proposals/${id}`)}>
                     Cancel
                   </Button>
-                  <Button variant="primary" type="submit" disabled={isSubmitting}>
+                  <Button
+                    variant="primary"
+                    type="submit"
+                    disabled={isSubmitting}>
                     {isSubmitting ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
@@ -182,8 +309,7 @@ const EditProposal = () => {
         </Col>
       </Row>
     </Container>
-  )
-}
+  );
+};
 
-export default EditProposal
-
+export default EditProposal;

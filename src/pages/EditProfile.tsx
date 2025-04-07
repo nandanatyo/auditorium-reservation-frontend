@@ -1,66 +1,101 @@
-"use client"
-
-import type React from "react"
-
-import { useState, useContext, useEffect } from "react"
-import { Container, Row, Col, Form, Button, Card, Alert } from "react-bootstrap"
-import { useNavigate } from "react-router-dom"
-import { UserContext } from "../context/UserContext"
+// src/pages/EditProfile.tsx
+import { useState, useEffect } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Form,
+  Button,
+  Card,
+  Alert,
+} from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/auth/AuthProvider";
+import { UpdateUserProfileRequest, ApiError } from "../types";
+import { userService } from "../services/user.service";
 
 const EditProfile = () => {
-  const { user, updateUser } = useContext(UserContext)
-  const navigate = useNavigate()
+  const { user, refreshUser } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    organization: "",
     bio: "",
-  })
-  const [success, setSuccess] = useState(false)
-  const [error, setError] = useState("")
+  });
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!user && !isLoading) {
+      navigate("/login");
+    }
+  }, [user, navigate, isLoading]);
+
+  // Set form data when user is available
   useEffect(() => {
     if (user) {
       setFormData({
         name: user.name || "",
         email: user.email || "",
-        organization: user.organization || "",
         bio: user.bio || "",
-      })
+      });
     }
-  }, [user])
+  }, [user]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
 
     try {
-      updateUser({
-        name: formData.name,
-        email: formData.email,
-        organization: formData.organization,
-        bio: formData.bio,
-      })
-      setSuccess(true)
-      setError("")
+      // Only send changed fields to the API
+      const updateData: UpdateUserProfileRequest = {};
+
+      if (formData.name !== user?.name) {
+        updateData.name = formData.name;
+      }
+
+      if (formData.bio !== user?.bio) {
+        updateData.bio = formData.bio;
+      }
+
+      // Only make the API call if there are changes
+      if (Object.keys(updateData).length > 0) {
+        await userService.updateProfile(updateData);
+        // Refresh user data after update
+        await refreshUser();
+        setSuccess(true);
+      } else {
+        setSuccess(true); // No changes but still show success
+      }
 
       // Reset success message after 3 seconds
       setTimeout(() => {
-        setSuccess(false)
-      }, 3000)
+        setSuccess(false);
+      }, 3000);
     } catch (err) {
-      setError("Failed to update profile. Please try again.")
-      setSuccess(false)
+      console.error("Profile update error:", err);
+      const apiError = err as ApiError;
+      setError(
+        apiError.data?.message || "Failed to update profile. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
 
+  // If we're still waiting for user data, show loading
   if (!user) {
-    navigate("/login")
-    return null
+    return <div className="text-center py-4">Loading...</div>;
   }
 
   return (
@@ -70,23 +105,35 @@ const EditProfile = () => {
           <Card>
             <Card.Header as="h4">Edit Profile</Card.Header>
             <Card.Body>
-              {success && <Alert variant="success">Profile updated successfully!</Alert>}
+              {success && (
+                <Alert variant="success">Profile updated successfully!</Alert>
+              )}
               {error && <Alert variant="danger">{error}</Alert>}
 
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
                   <Form.Label>Full Name</Form.Label>
-                  <Form.Control type="text" name="name" value={formData.name} onChange={handleChange} required />
+                  <Form.Control
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                  />
                 </Form.Group>
 
                 <Form.Group className="mb-3">
                   <Form.Label>Email Address</Form.Label>
-                  <Form.Control type="email" name="email" value={formData.email} onChange={handleChange} required />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Organization</Form.Label>
-                  <Form.Control type="text" name="organization" value={formData.organization} onChange={handleChange} />
+                  <Form.Control
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    readOnly
+                  />
+                  <Form.Text className="text-muted">
+                    Email cannot be changed
+                  </Form.Text>
                 </Form.Group>
 
                 <Form.Group className="mb-3">
@@ -102,11 +149,13 @@ const EditProfile = () => {
                 </Form.Group>
 
                 <div className="d-flex justify-content-between">
-                  <Button variant="secondary" onClick={() => navigate("/profile")}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => navigate("/profile")}>
                     Cancel
                   </Button>
-                  <Button variant="primary" type="submit">
-                    Save Changes
+                  <Button variant="primary" type="submit" disabled={isLoading}>
+                    {isLoading ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </Form>
@@ -115,8 +164,7 @@ const EditProfile = () => {
         </Col>
       </Row>
     </Container>
-  )
-}
+  );
+};
 
-export default EditProfile
-
+export default EditProfile;

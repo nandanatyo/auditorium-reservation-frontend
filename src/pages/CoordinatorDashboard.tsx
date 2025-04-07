@@ -1,142 +1,317 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Container, Card, Table, Badge, Button, Tabs, Tab, Alert } from "react-bootstrap"
-import { Link } from "react-router-dom"
+import { useState, useEffect } from "react";
+import {
+  Container,
+  Card,
+  Table,
+  Badge,
+  Button,
+  Tabs,
+  Tab,
+  Alert,
+  Spinner,
+} from "react-bootstrap";
+import { Link } from "react-router-dom";
+import { conferenceService } from "../services/conference.service";
+import { feedbackService } from "../services/feedback.service";
+import { Conference, ConferenceStatus } from "../types/conference.types";
+import { Feedback } from "../types/feedback.types";
 
 const CoordinatorDashboard = () => {
-  const [key, setKey] = useState("proposals")
-  const [proposals, setProposals] = useState([
-    {
-      id: "1",
-      title: "Building Scalable React Applications",
-      speaker: "John Doe",
-      category: "Frontend",
-      status: "pending",
-      submittedDate: "2023-05-15",
-    },
-    {
-      id: "2",
-      title: "Introduction to GraphQL",
-      speaker: "Jane Smith",
-      category: "Backend",
-      status: "pending",
-      submittedDate: "2023-05-10",
-    },
-    {
-      id: "3",
-      title: "Microservices with Node.js",
-      speaker: "Alex Johnson",
-      category: "Architecture",
-      status: "pending",
-      submittedDate: "2023-05-05",
-    },
-  ])
+  const [key, setKey] = useState("proposals");
+  const [isLoading, setIsLoading] = useState({
+    conferences: true,
+    activeSessions: true,
+    feedback: true,
+  });
+  const [pendingProposals, setPendingProposals] = useState<Conference[]>([]);
+  const [activeSessions, setActiveSessions] = useState<Conference[]>([]);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const [sessions, setSessions] = useState([
-    {
-      id: "1",
-      title: "Advanced TypeScript Patterns",
-      speaker: "Sarah Williams",
-      date: "2023-06-15",
-      time: "10:00 AM - 11:30 AM",
-      location: "Room A",
-      attendees: 25,
-      maxAttendees: 30,
-    },
-    {
-      id: "2",
-      title: "UI/UX Design Principles",
-      speaker: "Michael Brown",
-      date: "2023-06-16",
-      time: "2:00 PM - 3:30 PM",
-      location: "Room B",
-      attendees: 35,
-      maxAttendees: 40,
-    },
-  ])
+  // Mengambil data proposal yang pending dari backend
+  useEffect(() => {
+    const fetchPendingProposals = async () => {
+      try {
+        setIsLoading((prev) => ({ ...prev, conferences: true }));
 
-  const [feedback, setFeedback] = useState([
-    {
-      id: "1",
-      sessionId: "1",
-      sessionTitle: "Advanced TypeScript Patterns",
-      userId: "3",
-      userName: "John Doe",
-      rating: 4,
-      comment: "Great session, learned a lot!",
-      date: "2023-05-20",
-      flagged: false,
-    },
-    {
-      id: "2",
-      sessionId: "1",
-      sessionTitle: "Advanced TypeScript Patterns",
-      userId: "4",
-      userName: "Sarah Williams",
-      rating: 2,
-      comment: "Too advanced for beginners.",
-      date: "2023-05-21",
-      flagged: true,
-    },
-    {
-      id: "3",
-      sessionId: "2",
-      sessionTitle: "UI/UX Design Principles",
-      userId: "5",
-      userName: "Michael Brown",
-      rating: 5,
-      comment: "Excellent content and presentation!",
-      date: "2023-05-22",
-      flagged: false,
-    },
-  ])
+        // Mengambil proposal dengan status pending
+        const response = await conferenceService.getConferences({
+          limit: 20, // Berdasarkan dokumentasi, limit max adalah 20
+          status: "pending",
+          order_by: "created_at",
+          order: "desc",
+        });
 
-  const handleApproveProposal = (id: string) => {
-    setProposals(proposals.map((proposal) => (proposal.id === id ? { ...proposal, status: "approved" } : proposal)))
-  }
+        setPendingProposals(response.conferences);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching pending proposals:", err);
+        setError("Failed to load proposals. Please try again later.");
+      } finally {
+        setIsLoading((prev) => ({ ...prev, conferences: false }));
+      }
+    };
 
-  const handleRejectProposal = (id: string) => {
-    setProposals(proposals.map((proposal) => (proposal.id === id ? { ...proposal, status: "rejected" } : proposal)))
-  }
+    if (key === "proposals") {
+      fetchPendingProposals();
+    }
+  }, [key]);
 
-  const handleRemoveSession = (id: string) => {
-    setSessions(sessions.filter((session) => session.id !== id))
-  }
+  // Mengambil data sesi aktif dari backend
+  useEffect(() => {
+    const fetchActiveSessions = async () => {
+      try {
+        setIsLoading((prev) => ({ ...prev, activeSessions: true }));
 
-  const handleRemoveFeedback = (id: string) => {
-    setFeedback(feedback.filter((item) => item.id !== id))
-  }
+        // Mengambil sesi dengan status approved dan sesi yang belum berlalu
+        const response = await conferenceService.getConferences({
+          limit: 20,
+          status: "approved",
+          order_by: "starts_at",
+          order: "asc",
+          include_past: false,
+        });
 
-  const handleToggleFlagFeedback = (id: string) => {
-    setFeedback(feedback.map((item) => (item.id === id ? { ...item, flagged: !item.flagged } : item)))
-  }
+        setActiveSessions(response.conferences);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching active sessions:", err);
+        setError("Failed to load active sessions. Please try again later.");
+      } finally {
+        setIsLoading((prev) => ({ ...prev, activeSessions: false }));
+      }
+    };
 
-  const getStatusBadge = (status: string) => {
+    if (key === "sessions") {
+      fetchActiveSessions();
+    }
+  }, [key]);
+
+  // Mengambil data feedback dari backend
+  useEffect(() => {
+    const fetchAllFeedbacks = async () => {
+      try {
+        setIsLoading((prev) => ({ ...prev, feedback: true }));
+
+        // Karena feedbackService.getConferenceFeedbacks memerlukan conference_id,
+        // kita perlu mendapatkan terlebih dahulu daftar konferensi
+        const conferencesResp = await conferenceService.getConferences({
+          limit: 20,
+          status: "approved",
+          order_by: "starts_at",
+          order: "desc",
+        });
+
+        // Kemudian kita ambil feedback untuk setiap konferensi
+        const allFeedbacks: Feedback[] = [];
+
+        // Gunakan Promise.all untuk meningkatkan performa
+        if (conferencesResp.conferences.length > 0) {
+          await Promise.all(
+            conferencesResp.conferences.map(async (conference) => {
+              try {
+                const feedbackResp =
+                  await feedbackService.getConferenceFeedbacks(conference.id, {
+                    limit: 20,
+                  });
+
+                // Tambahkan judul konferensi ke setiap feedback
+                const feedbacksWithConference = feedbackResp.feedbacks.map(
+                  (feedback: any) => ({
+                    ...feedback,
+                    conference_title: conference.title,
+                  })
+                );
+
+                allFeedbacks.push(...feedbacksWithConference);
+              } catch (error) {
+                console.error(
+                  `Error fetching feedback for conference ${conference.id}:`,
+                  error
+                );
+              }
+            })
+          );
+        }
+
+        setFeedbacks(allFeedbacks);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching feedbacks:", err);
+        setError("Failed to load feedbacks. Please try again later.");
+      } finally {
+        setIsLoading((prev) => ({ ...prev, feedback: false }));
+      }
+    };
+
+    if (key === "feedback") {
+      fetchAllFeedbacks();
+    }
+  }, [key]);
+
+  // Handler untuk menyetujui proposal
+  const handleApproveProposal = async (id: string) => {
+    try {
+      await conferenceService.updateConferenceStatus(id, {
+        status: "approved",
+      });
+      // Update state lokal setelah perubahan berhasil
+      setPendingProposals((proposals) =>
+        proposals.filter((proposal) => proposal.id !== id)
+      );
+    } catch (err: any) {
+      console.error("Error approving proposal:", err);
+
+      // Cek jika error adalah konflik jadwal
+      if (err.response?.data?.error_code === "TIME_WINDOW_CONFLICT") {
+        const conflictDetails = err.response.data.detail?.conferences || [];
+        const conflictMessage = `
+          Terjadi konflik jadwal. Konferensi ini bertabrakan dengan:
+          ${conflictDetails
+            .map(
+              (conf: any) =>
+                `- ${conf.title} (${new Date(
+                  conf.starts_at
+                ).toLocaleString()} - ${new Date(
+                  conf.ends_at
+                ).toLocaleString()})`
+            )
+            .join("\n")}
+
+          Silakan edit waktu konferensi terlebih dahulu sebelum menyetujui.
+        `;
+        setError(conflictMessage);
+      } else {
+        setError("Failed to approve proposal. Please try again.");
+      }
+    }
+  };
+
+  // Handler untuk menolak proposal
+  const handleRejectProposal = async (id: string) => {
+    try {
+      await conferenceService.updateConferenceStatus(id, {
+        status: "rejected",
+      });
+      // Update state lokal setelah perubahan berhasil
+      setPendingProposals((proposals) =>
+        proposals.filter((proposal) => proposal.id !== id)
+      );
+    } catch (err) {
+      console.error("Error rejecting proposal:", err);
+      setError("Failed to reject proposal. Please try again.");
+    }
+  };
+
+  // Handler untuk menghapus session
+  const handleRemoveSession = async (id: string) => {
+    try {
+      await conferenceService.deleteConference(id);
+      // Hapus session dari state lokal setelah berhasil
+      setActiveSessions((sessions) =>
+        sessions.filter((session) => session.id !== id)
+      );
+    } catch (err) {
+      console.error("Error removing session:", err);
+      setError("Failed to remove session. Please try again.");
+    }
+  };
+
+  // Handler untuk menghapus feedback
+  const handleRemoveFeedback = async (id: string) => {
+    try {
+      await feedbackService.deleteFeedback(id);
+      // Hapus feedback dari state lokal setelah berhasil
+      setFeedbacks((feedbacks) =>
+        feedbacks.filter((feedback) => feedback.id !== id)
+      );
+    } catch (err) {
+      console.error("Error removing feedback:", err);
+      setError("Failed to remove feedback. Please try again.");
+    }
+  };
+
+  // Helper untuk mendapatkan badge status
+  const getStatusBadge = (status: ConferenceStatus) => {
     switch (status) {
       case "pending":
-        return <Badge bg="warning">Pending</Badge>
+        return <Badge bg="warning">Pending</Badge>;
       case "approved":
-        return <Badge bg="success">Approved</Badge>
+        return <Badge bg="success">Approved</Badge>;
       case "rejected":
-        return <Badge bg="danger">Rejected</Badge>
+        return <Badge bg="danger">Rejected</Badge>;
       default:
-        return <Badge bg="secondary">Unknown</Badge>
+        return <Badge bg="secondary">Unknown</Badge>;
     }
-  }
+  };
+
+  // Format datetime dari ISO string
+  const formatDateTime = (isoString: string) => {
+    const date = new Date(isoString);
+    return date.toLocaleString();
+  };
+
+  // Ekstrak tanggal dari ISO string
+  const formatDate = (isoString: string) => {
+    const date = new Date(isoString);
+    return date.toLocaleDateString();
+  };
+
+  // Ekstrak waktu dari ISO string
+  const formatTime = (startIso: string, endIso: string) => {
+    const start = new Date(startIso);
+    const end = new Date(endIso);
+    return `${start.toLocaleTimeString()} - ${end.toLocaleTimeString()}`;
+  };
+
+  // Render loading spinner
+  const renderLoading = () => (
+    <div className="text-center py-4">
+      <Spinner animation="border" role="status">
+        <span className="visually-hidden">Loading...</span>
+      </Spinner>
+    </div>
+  );
+
+  // Render error alert
+  const renderError = () =>
+    error && (
+      <Alert variant="danger" className="mt-3">
+        <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{error}</pre>
+        <div className="mt-2">
+          <Button
+            className="ms-2"
+            variant="outline-danger"
+            size="sm"
+            onClick={() => setError(null)}>
+            Dismiss
+          </Button>
+        </div>
+      </Alert>
+    );
 
   return (
     <Container className="py-4">
       <h1 className="mb-4">Coordinator Dashboard</h1>
 
-      <Tabs id="coordinator-tabs" activeKey={key} onSelect={(k) => setKey(k || "proposals")} className="mb-4">
+      {renderError()}
+
+      <Tabs
+        id="coordinator-tabs"
+        activeKey={key}
+        onSelect={(k) => setKey(k || "proposals")}
+        className="mb-4">
         <Tab eventKey="proposals" title="Session Proposals">
           <Card>
             <Card.Header>
               <h5 className="mb-0">Session Proposals</h5>
             </Card.Header>
             <Card.Body>
-              {proposals.length === 0 ? (
+              {isLoading.conferences ? (
+                renderLoading()
+              ) : pendingProposals.length === 0 ? (
                 <Alert variant="info">No pending proposals to review.</Alert>
               ) : (
                 <Table responsive>
@@ -144,29 +319,41 @@ const CoordinatorDashboard = () => {
                     <tr>
                       <th>Title</th>
                       <th>Speaker</th>
-                      <th>Category</th>
+                      <th>Target Audience</th>
                       <th>Submitted</th>
                       <th>Status</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {proposals.map((proposal) => (
+                    {pendingProposals.map((proposal) => (
                       <tr key={proposal.id}>
                         <td>{proposal.title}</td>
-                        <td>{proposal.speaker}</td>
-                        <td>{proposal.category}</td>
-                        <td>{proposal.submittedDate}</td>
+                        <td>{proposal.speaker_name}</td>
+                        <td>{proposal.target_audience}</td>
+                        <td>{formatDate(proposal.created_at)}</td>
                         <td>{getStatusBadge(proposal.status)}</td>
                         <td>
                           {proposal.status === "pending" && (
                             <div className="d-flex gap-2">
-                              <Button variant="success" size="sm" onClick={() => handleApproveProposal(proposal.id)}>
+                              <Button
+                                variant="success"
+                                size="sm"
+                                onClick={() =>
+                                  handleApproveProposal(proposal.id)
+                                }>
                                 Approve
                               </Button>
-                              <Button variant="danger" size="sm" onClick={() => handleRejectProposal(proposal.id)}>
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() =>
+                                  handleRejectProposal(proposal.id)
+                                }>
                                 Reject
                               </Button>
+                              <Link
+                                to={`/proposals/${proposal.id}/edit`}></Link>
                             </div>
                           )}
                         </td>
@@ -185,7 +372,9 @@ const CoordinatorDashboard = () => {
               <h5 className="mb-0">Active Sessions</h5>
             </Card.Header>
             <Card.Body>
-              {sessions.length === 0 ? (
+              {isLoading.activeSessions ? (
+                renderLoading()
+              ) : activeSessions.length === 0 ? (
                 <Alert variant="info">No active sessions found.</Alert>
               ) : (
                 <Table responsive>
@@ -195,21 +384,23 @@ const CoordinatorDashboard = () => {
                       <th>Speaker</th>
                       <th>Date</th>
                       <th>Time</th>
-                      <th>Location</th>
+                      <th>Host</th>
                       <th>Attendees</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {sessions.map((session) => (
+                    {activeSessions.map((session) => (
                       <tr key={session.id}>
                         <td>{session.title}</td>
-                        <td>{session.speaker}</td>
-                        <td>{session.date}</td>
-                        <td>{session.time}</td>
-                        <td>{session.location}</td>
+                        <td>{session.speaker_name}</td>
+                        <td>{formatDate(session.starts_at)}</td>
                         <td>
-                          {session.attendees}/{session.maxAttendees}
+                          {formatTime(session.starts_at, session.ends_at)}
+                        </td>
+                        <td>{session.host.name}</td>
+                        <td>
+                          {session.seats_taken ?? 0}/{session.seats}
                         </td>
                         <td>
                           <div className="d-flex gap-2">
@@ -218,7 +409,10 @@ const CoordinatorDashboard = () => {
                                 View
                               </Button>
                             </Link>
-                            <Button variant="danger" size="sm" onClick={() => handleRemoveSession(session.id)}>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleRemoveSession(session.id)}>
                               Remove
                             </Button>
                           </div>
@@ -238,7 +432,9 @@ const CoordinatorDashboard = () => {
               <h5 className="mb-0">User Feedback</h5>
             </Card.Header>
             <Card.Body>
-              {feedback.length === 0 ? (
+              {isLoading.feedback ? (
+                renderLoading()
+              ) : feedbacks.length === 0 ? (
                 <Alert variant="info">No feedback found.</Alert>
               ) : (
                 <Table responsive>
@@ -246,30 +442,24 @@ const CoordinatorDashboard = () => {
                     <tr>
                       <th>Session</th>
                       <th>User</th>
-                      <th>Rating</th>
                       <th>Comment</th>
                       <th>Date</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {feedback.map((item) => (
-                      <tr key={item.id} className={item.flagged ? "table-warning" : ""}>
-                        <td>{item.sessionTitle}</td>
-                        <td>{item.userName}</td>
-                        <td>{item.rating}/5</td>
+                    {feedbacks.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.conference_title}</td>
+                        <td>{item.user.name}</td>
                         <td>{item.comment}</td>
-                        <td>{item.date}</td>
+                        <td>{formatDate(item.created_at)}</td>
                         <td>
                           <div className="d-flex gap-2">
                             <Button
-                              variant={item.flagged ? "outline-warning" : "outline-secondary"}
+                              variant="danger"
                               size="sm"
-                              onClick={() => handleToggleFlagFeedback(item.id)}
-                            >
-                              {item.flagged ? "Unflag" : "Flag"}
-                            </Button>
-                            <Button variant="danger" size="sm" onClick={() => handleRemoveFeedback(item.id)}>
+                              onClick={() => handleRemoveFeedback(item.id)}>
                               Remove
                             </Button>
                           </div>
@@ -284,8 +474,7 @@ const CoordinatorDashboard = () => {
         </Tab>
       </Tabs>
     </Container>
-  )
-}
+  );
+};
 
-export default CoordinatorDashboard
-
+export default CoordinatorDashboard;

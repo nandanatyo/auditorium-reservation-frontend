@@ -1,20 +1,37 @@
-"use client";
-
-import { useContext } from "react";
+// src/pages/Profile.tsx
 import { Container, Row, Col, Card, Button, ListGroup } from "react-bootstrap";
-import { Link } from "react-router-dom";
-import { UserContext } from "../context/UserContext";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/auth/AuthProvider";
-import { AuthContext } from "../contexts/auth/AuthContext";
+import { useEffect, useState } from "react";
+import { useRegistration } from "../contexts/registration/RegistrationProvider";
 
 const Profile = () => {
-  const { user } = useContext(UserContext);
-  // const { user } = useAuth();
-  console.log("User in Profile:", user);
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+  const { getRegisteredConferences, isLoading: isLoadingRegistrations } =
+    useRegistration();
+  const [attendedCount, setAttendedCount] = useState(0);
+  const [proposalCount, setProposalCount] = useState(0);
+  const [feedbackCount, setFeedbackCount] = useState(0);
 
-  // if (isLoading) {
-  //   return <div>Loading...</div>;
-  // }
+  // For a real app, you might want to fetch this data from the API
+  useEffect(() => {
+    if (user) {
+      // This is a placeholder for now - in a real app you'd load this data
+      setAttendedCount(5);
+      setProposalCount(2);
+      setFeedbackCount(3);
+
+      // You could load the user's registered conferences here
+      // For example:
+      // getRegisteredConferences(user.id, { limit: 10, include_past: true });
+    }
+  }, [user]);
+
+  if (isLoading) {
+    return <div className="text-center py-4">Loading...</div>;
+  }
+
   if (!user) {
     return (
       <Container>
@@ -43,19 +60,18 @@ const Profile = () => {
               <div className="mb-3">
                 <img
                   src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    user.name
+                    user.name || "User"
                   )}&background=random&size=128`}
-                  alt={user.name}
+                  alt={user.name || "User"}
                   className="rounded-circle img-fluid"
                   style={{ width: "150px", height: "150px" }}
                 />
               </div>
-              <Card.Title>{user.name}</Card.Title>
-              <Card.Subtitle className="mb-2 text-muted">
-                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-              </Card.Subtitle>
-              {user.organization && (
-                <p className="text-muted">{user.organization}</p>
+              <Card.Title>{user.name || "User"}</Card.Title>
+              {user.role && (
+                <Card.Subtitle className="mb-2 text-muted">
+                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                </Card.Subtitle>
               )}
               <Link to="/edit-profile">
                 <Button variant="outline-primary">Edit Profile</Button>
@@ -75,7 +91,7 @@ const Profile = () => {
               <ListGroup.Item action as={Link} to="/create-proposal">
                 Create New Proposal
               </ListGroup.Item>
-              {user.role === "coordinator" && (
+              {user.role === "event_coordinator" && (
                 <ListGroup.Item action as={Link} to="/coordinator">
                   Coordinator Dashboard
                 </ListGroup.Item>
@@ -97,14 +113,14 @@ const Profile = () => {
                 <Col sm={3}>
                   <strong>Full Name:</strong>
                 </Col>
-                <Col sm={9}>{user.name}</Col>
+                <Col sm={9}>{user.name || "N/A"}</Col>
               </Row>
               <hr />
               <Row>
                 <Col sm={3}>
                   <strong>Email:</strong>
                 </Col>
-                <Col sm={9}>{user.email}</Col>
+                <Col sm={9}>{user.email || "N/A"}</Col>
               </Row>
               <hr />
               <Row>
@@ -112,20 +128,11 @@ const Profile = () => {
                   <strong>Role:</strong>
                 </Col>
                 <Col sm={9}>
-                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                  {user.role
+                    ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+                    : "N/A"}
                 </Col>
               </Row>
-              {user.organization && (
-                <>
-                  <hr />
-                  <Row>
-                    <Col sm={3}>
-                      <strong>Organization:</strong>
-                    </Col>
-                    <Col sm={9}>{user.organization}</Col>
-                  </Row>
-                </>
-              )}
               {user.bio && (
                 <>
                   <hr />
@@ -137,26 +144,6 @@ const Profile = () => {
                   </Row>
                 </>
               )}
-            </Card.Body>
-          </Card>
-
-          <Card>
-            <Card.Header>Activity Summary</Card.Header>
-            <Card.Body>
-              <Row>
-                <Col md={4} className="text-center mb-3">
-                  <h3>5</h3>
-                  <p className="text-muted">Sessions Attended</p>
-                </Col>
-                <Col md={4} className="text-center mb-3">
-                  <h3>2</h3>
-                  <p className="text-muted">Proposals Submitted</p>
-                </Col>
-                <Col md={4} className="text-center mb-3">
-                  <h3>3</h3>
-                  <p className="text-muted">Feedback Given</p>
-                </Col>
-              </Row>
             </Card.Body>
           </Card>
         </Col>

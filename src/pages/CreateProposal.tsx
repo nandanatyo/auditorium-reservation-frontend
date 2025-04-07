@@ -1,55 +1,143 @@
-"use client"
-
-import type React from "react"
-
-import { useState, useContext } from "react"
-import { Container, Row, Col, Form, Button, Card, Alert } from "react-bootstrap"
-import { useNavigate } from "react-router-dom"
-import { UserContext } from "../context/UserContext"
+// src/pages/CreateProposal.tsx
+import { useState, useEffect } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Form,
+  Button,
+  Card,
+  Alert,
+} from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/auth/AuthProvider";
+import { useConference } from "../contexts/conference/ConferenceProvider";
+import { CreateConferenceRequest, ApiError } from "../types";
 
 const CreateProposal = () => {
-  const { user } = useContext(UserContext)
-  const navigate = useNavigate()
-  const [formData, setFormData] = useState({
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { createConference, isLoading: isCreating } = useConference();
+  const navigate = useNavigate();
+
+  // Proposal form state
+  const [formData, setFormData] = useState<CreateConferenceRequest>({
     title: "",
-    category: "",
     description: "",
-    objectives: "",
-    prerequisites: "",
-    duration: "60",
-    maxAttendees: "30",
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState("")
+    speaker_name: "",
+    speaker_title: "",
+    target_audience: "",
+    prerequisites: null,
+    seats: 30,
+    starts_at: "",
+    ends_at: "",
+  });
 
-  const categories = ["Frontend", "Backend", "Programming", "Design", "Architecture", "DevOps", "Mobile", "Other"]
+  const [error, setError] = useState("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+  // Check if user is logged in, redirect to login if not authenticated and not loading
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate("/login");
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  // Set default speaker name from logged in user
+  useEffect(() => {
+    if (user && user.name) {
+      setFormData((prev) => ({
+        ...prev,
+        speaker_name: user.name || "",
+      }));
+    }
+  }, [user]);
 
-    if (!user) {
-      navigate("/login")
-      return
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = e.target;
+
+    // Handle numeric values
+    if (name === "seats") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: parseInt(value) || 0,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+  };
+
+  const handleChangePrerequisites = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    const { value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      prerequisites: value || null,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
     }
 
-    setIsSubmitting(true)
-    setError("")
+    // Validate form
+    if (
+      !formData.title ||
+      !formData.description ||
+      !formData.speaker_name ||
+      !formData.speaker_title ||
+      !formData.target_audience ||
+      !formData.starts_at ||
+      !formData.ends_at
+    ) {
+      setError("Please fill all required fields");
+      return;
+    }
 
-    // In a real app, you would make an API call to submit the proposal
-    setTimeout(() => {
-      setIsSubmitting(false)
-      navigate("/my-proposals")
-    }, 1000)
+    try {
+      // Format dates in ISO string format
+      const data = {
+        ...formData,
+        starts_at: new Date(formData.starts_at).toISOString(),
+        ends_at: new Date(formData.ends_at).toISOString(),
+      };
+
+      // Call the API to create conference/proposal
+      await createConference(data);
+
+      // Navigate to my proposals page on success
+      navigate("/my-proposals");
+    } catch (err) {
+      console.error("Failed to create proposal:", err);
+      const apiError = err as ApiError;
+      setError(
+        apiError.data?.message || "Failed to create proposal. Please try again."
+      );
+    }
+  };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <Container className="py-4">
+        <div className="text-center">Loading...</div>
+      </Container>
+    );
   }
 
-  if (!user) {
-    navigate("/login")
-    return null
+  // If not authenticated, return null (useEffect will handle redirect)
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (
@@ -75,18 +163,6 @@ const CreateProposal = () => {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Category</Form.Label>
-                  <Form.Select name="category" value={formData.category} onChange={handleChange} required>
-                    <option value="">Select a category</option>
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-
-                <Form.Group className="mb-3">
                   <Form.Label>Description</Form.Label>
                   <Form.Control
                     as="textarea"
@@ -99,27 +175,56 @@ const CreateProposal = () => {
                   />
                 </Form.Group>
 
+                <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Speaker Name</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="speaker_name"
+                        value={formData.speaker_name}
+                        onChange={handleChange}
+                        placeholder="Speaker's full name"
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Speaker Title</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="speaker_title"
+                        value={formData.speaker_title}
+                        onChange={handleChange}
+                        placeholder="Speaker's position/role"
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
                 <Form.Group className="mb-3">
-                  <Form.Label>Learning Objectives</Form.Label>
+                  <Form.Label>Target Audience</Form.Label>
                   <Form.Control
-                    as="textarea"
-                    rows={3}
-                    name="objectives"
-                    value={formData.objectives}
+                    type="text"
+                    name="target_audience"
+                    value={formData.target_audience}
                     onChange={handleChange}
-                    placeholder="What will attendees learn from your session?"
+                    placeholder="Who should attend this session?"
                     required
                   />
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Prerequisites</Form.Label>
+                  <Form.Label>Prerequisites (Optional)</Form.Label>
                   <Form.Control
                     as="textarea"
                     rows={2}
                     name="prerequisites"
-                    value={formData.prerequisites}
-                    onChange={handleChange}
+                    value={formData.prerequisites || ""}
+                    onChange={handleChangePrerequisites}
                     placeholder="What should attendees already know before attending your session?"
                   />
                 </Form.Group>
@@ -127,39 +232,49 @@ const CreateProposal = () => {
                 <Row>
                   <Col md={6}>
                     <Form.Group className="mb-3">
-                      <Form.Label>Duration (minutes)</Form.Label>
-                      <Form.Select name="duration" value={formData.duration} onChange={handleChange} required>
-                        <option value="30">30 minutes</option>
-                        <option value="45">45 minutes</option>
-                        <option value="60">60 minutes</option>
-                        <option value="90">90 minutes</option>
-                        <option value="120">120 minutes</option>
-                      </Form.Select>
+                      <Form.Label>Start Date and Time</Form.Label>
+                      <Form.Control
+                        type="datetime-local"
+                        name="starts_at"
+                        value={formData.starts_at}
+                        onChange={handleChange}
+                        required
+                      />
                     </Form.Group>
                   </Col>
-
                   <Col md={6}>
                     <Form.Group className="mb-3">
-                      <Form.Label>Maximum Attendees</Form.Label>
+                      <Form.Label>End Date and Time</Form.Label>
                       <Form.Control
-                        type="number"
-                        name="maxAttendees"
-                        value={formData.maxAttendees}
+                        type="datetime-local"
+                        name="ends_at"
+                        value={formData.ends_at}
                         onChange={handleChange}
-                        min="5"
-                        max="100"
                         required
                       />
                     </Form.Group>
                   </Col>
                 </Row>
 
+                <Form.Group className="mb-3">
+                  <Form.Label>Available Seats</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="seats"
+                    value={formData.seats}
+                    onChange={handleChange}
+                    min="5"
+                    max="100"
+                    required
+                  />
+                </Form.Group>
+
                 <div className="d-flex justify-content-between">
                   <Button variant="secondary" onClick={() => navigate(-1)}>
                     Cancel
                   </Button>
-                  <Button variant="primary" type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? "Submitting..." : "Submit Proposal"}
+                  <Button variant="primary" type="submit" disabled={isCreating}>
+                    {isCreating ? "Submitting..." : "Submit Proposal"}
                   </Button>
                 </div>
               </Form>
@@ -168,8 +283,7 @@ const CreateProposal = () => {
         </Col>
       </Row>
     </Container>
-  )
-}
+  );
+};
 
-export default CreateProposal
-
+export default CreateProposal;

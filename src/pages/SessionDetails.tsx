@@ -1,146 +1,263 @@
-"use client"
-
-import type React from "react"
-
-import { useState, useContext } from "react"
-import { Container, Row, Col, Card, Button, Badge, Form, Alert, ListGroup } from "react-bootstrap"
-import { Link, useParams, useNavigate } from "react-router-dom"
-import { UserContext } from "../context/UserContext"
-
-// Mock data for a single session
-const mockSession = {
-  id: "1",
-  title: "Introduction to React Hooks",
-  speaker: "Jane Smith",
-  speakerId: "2",
-  date: "2023-06-15",
-  time: "10:00 AM - 11:30 AM",
-  location: "Room A",
-  category: "Frontend",
-  description:
-    "Learn how to use React Hooks to simplify your components and manage state effectively. This session will cover useState, useEffect, useContext, and custom hooks. We will also discuss best practices and common pitfalls when using hooks in your React applications.",
-  attendees: 45,
-  maxAttendees: 50,
-  isRegistered: false,
-  feedback: [
-    {
-      id: "1",
-      userId: "3",
-      userName: "John Doe",
-      rating: 5,
-      comment: "Excellent session! The examples were very helpful.",
-      date: "2023-05-20",
-    },
-    {
-      id: "2",
-      userId: "4",
-      userName: "Sarah Williams",
-      rating: 4,
-      comment: "Great content, but could use more advanced examples.",
-      date: "2023-05-21",
-    },
-  ],
-}
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Button,
+  Badge,
+  Form,
+  Alert,
+  ListGroup,
+  Spinner,
+} from "react-bootstrap";
+import { useAuth } from "../contexts/auth/AuthProvider";
+import { useRegistration } from "../contexts/registration/RegistrationProvider";
+import { conferenceService } from "../services/conference.service";
+import { feedbackService } from "../services/feedback.service";
+import { Conference, Feedback } from "../types";
 
 const SessionDetails = () => {
-  const { id } = useParams<{ id: string }>()
-  const { user } = useContext(UserContext)
-  const navigate = useNavigate()
-  const [session, setSession] = useState(mockSession)
-  const [isRegistered, setIsRegistered] = useState(false)
-  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
-  const [feedbackForm, setFeedbackForm] = useState({ rating: 5, comment: "" })
-  const [showFeedbackForm, setShowFeedbackForm] = useState(false)
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { registerForConference, isLoading: isRegistrationLoading } =
+    useRegistration();
 
-//   useEffect(() => {
-//     // Fetch session data
-//   }, [id]);
+  const [conference, setConference] = useState<Conference | null>(null);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [feedbackForm, setFeedbackForm] = useState({ comment: "" });
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const handleRegister = () => {
+  // Format date helper
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+
+  // Fetch conference details and feedbacks
+  useEffect(() => {
+    if (!id) return;
+
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+
+        // Get conference details
+        const conferenceData = await conferenceService.getConference(id);
+        setConference(conferenceData);
+
+        // Get feedbacks for this conference
+        try {
+          setIsLoadingFeedback(true);
+          const feedbackResponse = await feedbackService.getConferenceFeedbacks(
+            id,
+            { limit: 10 }
+          );
+          setFeedbacks(feedbackResponse.feedbacks || []);
+        } catch (feedbackErr) {
+          console.error("Error loading feedbacks:", feedbackErr);
+          // We don't set error here to allow the page to load even if feedbacks fail
+        } finally {
+          setIsLoadingFeedback(false);
+        }
+
+        setError("");
+      } catch (err: any) {
+        console.error("Error loading session details:", err);
+        setError(err.message || "Failed to load session details");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [id]);
+
+  // Register for conference
+  const handleRegister = async () => {
     if (!user) {
-      navigate("/login")
-      return
+      navigate("/login");
+      return;
     }
 
-    // In a real app, you would make an API call to register the user
-    setIsRegistered(true)
-    setSession((prev) => ({
-      ...prev,
-      attendees: prev.attendees + 1,
-      isRegistered: true,
-    }))
-  }
+    if (!conference || !id) return;
 
-  const handleCancelRegistration = () => {
-    // In a real app, you would make an API call to cancel the registration
-    setIsRegistered(false)
-    setSession((prev) => ({
-      ...prev,
-      attendees: prev.attendees - 1,
-      isRegistered: false,
-    }))
-  }
+    try {
+      setIsRegistering(true);
+      setError("");
 
-  const handleFeedbackChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFeedbackForm((prev) => ({ ...prev, [name]: value }))
-  }
+      // Memanggil API untuk mendaftar ke konferensi
+      await registerForConference({ conference_id: id });
 
-  const handleFeedbackSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+      // Update local state to reflect registration
+      setIsRegistered(true);
+      setSuccessMessage("You have successfully registered for this session!");
+
+      // Opsional: Reload conference data to get updated seats_taken
+      try {
+        const updatedConference = await conferenceService.getConference(id);
+        setConference(updatedConference);
+      } catch (refreshErr) {
+        console.error("Failed to refresh conference data:", refreshErr);
+      }
+
+      // Sembunyikan pesan sukses setelah beberapa detik
+      setTimeout(() => {
+        setSuccessMessage("");
+      }, 5000);
+    } catch (err: any) {
+      console.error("Failed to register for conference:", err);
+      setError(err.message || "Failed to register for this conference");
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  // Submit feedback
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     if (!user) {
-      navigate("/login")
-      return
+      navigate("/login");
+      return;
     }
 
-    // In a real app, you would make an API call to submit the feedback
-    const newFeedback = {
-      id: Math.random().toString(),
-      userId: user.id,
-      userName: user.name,
-      rating: Number.parseInt(feedbackForm.rating.toString()),
-      comment: feedbackForm.comment,
-      date: new Date().toISOString().split("T")[0],
+    if (!conference || !id) return;
+
+    try {
+      setIsLoadingFeedback(true);
+      setError("");
+
+      // Create the feedback using your API service
+      await feedbackService.createFeedback({
+        conference_id: id,
+        comment: feedbackForm.comment,
+      });
+
+      // Reset form and update UI
+      setFeedbackSubmitted(true);
+      setShowFeedbackForm(false);
+      setFeedbackForm({ comment: "" });
+
+      // Reload feedbacks to show the new one
+      const updatedFeedbacksResponse =
+        await feedbackService.getConferenceFeedbacks(id, {
+          limit: 10,
+        });
+      setFeedbacks(updatedFeedbacksResponse.feedbacks || []);
+
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setFeedbackSubmitted(false);
+      }, 3000);
+    } catch (err: any) {
+      console.error("Failed to submit feedback:", err);
+      setError(err.message || "Failed to submit feedback");
+    } finally {
+      setIsLoadingFeedback(false);
     }
+  };
 
-    setSession((prev) => ({
-      ...prev,
-      feedback: [newFeedback, ...prev.feedback],
-    }))
+  // Handle feedback form changes
+  const handleFeedbackChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFeedbackForm((prev) => ({ ...prev, [name]: value }));
+  };
 
-    setFeedbackSubmitted(true)
-    setShowFeedbackForm(false)
-    setFeedbackForm({ rating: 5, comment: "" })
+  if (isLoading) {
+    return (
+      <div className="text-center py-5">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Loading session details...</span>
+        </Spinner>
+      </div>
+    );
+  }
 
-    // Reset the feedback submitted message after 3 seconds
-    setTimeout(() => {
-      setFeedbackSubmitted(false)
-    }, 3000)
+  if (error) {
+    return (
+      <Container className="py-4">
+        <Alert variant="danger">
+          <Alert.Heading>Error</Alert.Heading>
+          <p>{error}</p>
+          <div className="d-flex justify-content-end">
+            <Button onClick={() => navigate(-1)} variant="outline-danger">
+              Go Back
+            </Button>
+          </div>
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (!conference) {
+    return (
+      <Container className="py-4">
+        <Alert variant="warning">
+          <Alert.Heading>Conference Not Found</Alert.Heading>
+          <p>
+            The session you're looking for doesn't exist or you may not have
+            permission to view it.
+          </p>
+          <div className="d-flex justify-content-end">
+            <Button onClick={() => navigate(-1)} variant="outline-warning">
+              Go Back
+            </Button>
+          </div>
+        </Alert>
+      </Container>
+    );
   }
 
   return (
-    <Container>
+    <Container className="py-4">
+      {successMessage && (
+        <Alert
+          variant="success"
+          dismissible
+          onClose={() => setSuccessMessage("")}>
+          {successMessage}
+        </Alert>
+      )}
+
       <Row>
         <Col lg={8}>
           <Card className="mb-4">
             <Card.Body>
               <div className="d-flex justify-content-between align-items-start mb-3">
                 <div>
-                  <h1>{session.title}</h1>
-                  <h5 className="text-muted">
-                    by <Link to={`/users/${session.speakerId}`}>{session.speaker}</Link>
-                  </h5>
+                  <h1>{conference.title}</h1>
+                  <h5 className="text-muted">by {conference.speaker_name}</h5>
                 </div>
-                <Badge bg="primary" className="p-2">
-                  {session.category}
+                <Badge
+                  bg={
+                    conference.status === "approved"
+                      ? "success"
+                      : conference.status === "pending"
+                      ? "warning"
+                      : "danger"
+                  }
+                  className="p-2">
+                  {conference.status.charAt(0).toUpperCase() +
+                    conference.status.slice(1)}
                 </Badge>
               </div>
 
               <hr />
 
               <h5>Description</h5>
-              <p>{session.description}</p>
+              <p>{conference.description}</p>
 
               <hr />
 
@@ -148,86 +265,126 @@ const SessionDetails = () => {
                 <Col md={6}>
                   <h5>Session Details</h5>
                   <p>
-                    <strong>Date:</strong> {session.date}
+                    <strong>Date:</strong> {formatDate(conference.starts_at)}
                   </p>
                   <p>
-                    <strong>Time:</strong> {session.time}
+                    <strong>Time:</strong>{" "}
+                    {new Date(conference.starts_at).toLocaleTimeString()} -{" "}
+                    {new Date(conference.ends_at).toLocaleTimeString()}
                   </p>
                   <p>
-                    <strong>Location:</strong> {session.location}
+                    <strong>Speaker Title:</strong> {conference.speaker_title}
                   </p>
+                  {conference.prerequisites && (
+                    <p>
+                      <strong>Prerequisites:</strong> {conference.prerequisites}
+                    </p>
+                  )}
                 </Col>
                 <Col md={6}>
                   <h5>Attendance</h5>
                   <p>
-                    <strong>Current Attendees:</strong> {session.attendees}
+                    <strong>Target Audience:</strong>{" "}
+                    {conference.target_audience}
                   </p>
                   <p>
-                    <strong>Maximum Capacity:</strong> {session.maxAttendees}
+                    <strong>Current Attendees:</strong>{" "}
+                    {conference.seats_taken || 0}
+                  </p>
+                  <p>
+                    <strong>Maximum Capacity:</strong> {conference.seats}
                   </p>
                   <div className="progress mb-3">
                     <div
                       className="progress-bar"
                       role="progressbar"
-                      style={{ width: `${(session.attendees / session.maxAttendees) * 100}%` }}
-                      aria-valuenow={(session.attendees / session.maxAttendees) * 100}
+                      style={{
+                        width: `${
+                          ((conference.seats_taken || 0) / conference.seats) *
+                          100
+                        }%`,
+                      }}
+                      aria-valuenow={
+                        ((conference.seats_taken || 0) / conference.seats) * 100
+                      }
                       aria-valuemin={0}
-                      aria-valuemax={100}
-                    >
-                      {Math.round((session.attendees / session.maxAttendees) * 100)}%
+                      aria-valuemax={100}>
+                      {Math.round(
+                        ((conference.seats_taken || 0) / conference.seats) * 100
+                      )}
+                      %
                     </div>
                   </div>
                 </Col>
               </Row>
             </Card.Body>
             <Card.Footer>
-              {!isRegistered && session.attendees < session.maxAttendees ? (
-                <Button variant="primary" onClick={handleRegister} disabled={session.attendees >= session.maxAttendees}>
-                  Register for this Session
+              {!isRegistered &&
+              (conference.seats_taken || 0) < conference.seats &&
+              conference.status === "approved" ? (
+                <Button
+                  variant="primary"
+                  onClick={handleRegister}
+                  disabled={
+                    isRegistering ||
+                    isRegistrationLoading ||
+                    (conference.seats_taken || 0) >= conference.seats
+                  }>
+                  {isRegistering || isRegistrationLoading
+                    ? "Registering..."
+                    : "Register for this Session"}
                 </Button>
               ) : isRegistered ? (
-                <Button variant="outline-danger" onClick={handleCancelRegistration}>
-                  Cancel Registration
+                <div>
+                  <Button variant="outline-success" disabled>
+                    Registered ✓
+                  </Button>
+                  <Link to="/my-sessions" className="ms-2">
+                    <Button variant="link">View My Sessions</Button>
+                  </Link>
+                </div>
+              ) : conference.status !== "approved" ? (
+                <Button variant="secondary" disabled>
+                  Registration Not Available - Session {conference.status}
                 </Button>
               ) : (
                 <Button variant="secondary" disabled>
                   Session is Full
                 </Button>
               )}
+              <Button
+                variant="secondary"
+                className="ms-2"
+                onClick={() => navigate(-1)}>
+                Back
+              </Button>
             </Card.Footer>
           </Card>
 
           <Card>
             <Card.Header className="d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">Feedback ({session.feedback.length})</h5>
+              <h5 className="mb-0">Feedback ({feedbacks.length})</h5>
               {user && !showFeedbackForm && (
-                <Button variant="outline-primary" size="sm" onClick={() => setShowFeedbackForm(true)}>
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() => setShowFeedbackForm(true)}>
                   Leave Feedback
                 </Button>
               )}
             </Card.Header>
             <Card.Body>
-              {feedbackSubmitted && <Alert variant="success">Your feedback has been submitted successfully!</Alert>}
+              {feedbackSubmitted && (
+                <Alert variant="success">
+                  Your feedback has been submitted successfully!
+                </Alert>
+              )}
+              {error && <Alert variant="danger">{error}</Alert>}
 
               {showFeedbackForm && (
                 <Form onSubmit={handleFeedbackSubmit} className="mb-4">
                   <Form.Group className="mb-3">
-                    <Form.Label>Rating</Form.Label>
-                    <Form.Select
-                      name="rating"
-                      value={feedbackForm.rating}
-                      onChange={(e) => handleFeedbackChange(e as any)}
-                    >
-                      <option value="5">5 - Excellent</option>
-                      <option value="4">4 - Very Good</option>
-                      <option value="3">3 - Good</option>
-                      <option value="2">2 - Fair</option>
-                      <option value="1">1 - Poor</option>
-                    </Form.Select>
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Comment</Form.Label>
+                    <Form.Label>Your Feedback</Form.Label>
                     <Form.Control
                       as="textarea"
                       rows={3}
@@ -240,35 +397,44 @@ const SessionDetails = () => {
                   </Form.Group>
 
                   <div className="d-flex justify-content-end gap-2">
-                    <Button variant="secondary" onClick={() => setShowFeedbackForm(false)}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowFeedbackForm(false)}>
                       Cancel
                     </Button>
-                    <Button variant="primary" type="submit">
-                      Submit Feedback
+                    <Button
+                      variant="primary"
+                      type="submit"
+                      disabled={isLoadingFeedback}>
+                      {isLoadingFeedback ? "Submitting..." : "Submit Feedback"}
                     </Button>
                   </div>
                 </Form>
               )}
 
-              {session.feedback.length === 0 ? (
-                <p className="text-center text-muted">No feedback yet. Be the first to leave feedback!</p>
+              {isLoadingFeedback ? (
+                <div className="text-center py-4">
+                  <Spinner animation="border" size="sm" /> Loading feedbacks...
+                </div>
+              ) : feedbacks.length === 0 ? (
+                <p className="text-center text-muted">
+                  No feedback yet. Be the first to leave feedback!
+                </p>
               ) : (
                 <ListGroup variant="flush">
-                  {session.feedback.map((item) => (
-                    <ListGroup.Item key={item.id} className="border-bottom">
+                  {feedbacks.map((feedback) => (
+                    <ListGroup.Item key={feedback.id} className="border-bottom">
                       <div className="d-flex justify-content-between align-items-center mb-1">
                         <div>
-                          <Link to={`/users/${item.userId}`}>{item.userName}</Link>
-                          <span className="text-muted ms-2">
-                            {Array(item.rating).fill("★").join("")}
-                            {Array(5 - item.rating)
-                              .fill("☆")
-                              .join("")}
-                          </span>
+                          <Link to={`/users/${feedback.user.id}`}>
+                            {feedback.user.name}
+                          </Link>
                         </div>
-                        <small className="text-muted">{item.date}</small>
+                        <small className="text-muted">
+                          {formatDate(feedback.created_at)}
+                        </small>
                       </div>
-                      <p className="mb-0">{item.comment}</p>
+                      <p className="mb-0">{feedback.comment}</p>
                     </ListGroup.Item>
                   ))}
                 </ListGroup>
@@ -280,18 +446,19 @@ const SessionDetails = () => {
         <Col lg={4}>
           <Card className="mb-4">
             <Card.Header>
-              <h5 className="mb-0">Speaker</h5>
+              <h5 className="mb-0">Host</h5>
             </Card.Header>
             <Card.Body className="text-center">
               <img
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(session.speaker)}&background=random&size=128`}
-                alt={session.speaker}
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  conference.host.name
+                )}&background=random&size=128`}
+                alt={conference.host.name}
                 className="rounded-circle mb-3"
                 style={{ width: "100px", height: "100px" }}
               />
-              <h5>{session.speaker}</h5>
-              <p className="text-muted">Speaker Bio</p>
-              <Link to={`/users/${session.speakerId}`}>
+              <h5>{conference.host.name}</h5>
+              <Link to={`/users/${conference.host.id}`}>
                 <Button variant="outline-primary" size="sm">
                   View Profile
                 </Button>
@@ -299,45 +466,31 @@ const SessionDetails = () => {
             </Card.Body>
           </Card>
 
-          <Card>
-            <Card.Header>
-              <h5 className="mb-0">Related Sessions</h5>
-            </Card.Header>
-            <ListGroup variant="flush">
-              <ListGroup.Item action as={Link} to="/sessions/2">
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <strong>Advanced TypeScript Patterns</strong>
-                    <div className="text-muted small">John Doe</div>
-                  </div>
-                  <Badge bg="primary">Programming</Badge>
+          {conference.status === "approved" && (
+            <Card>
+              <Card.Header>
+                <h5 className="mb-0">Quick Actions</h5>
+              </Card.Header>
+              <Card.Body>
+                <div className="d-grid gap-2">
+                  <Link to="/my-sessions">
+                    <Button variant="outline-secondary" className="w-100">
+                      My Registered Sessions
+                    </Button>
+                  </Link>
+                  <Link to="/sessions">
+                    <Button variant="outline-secondary" className="w-100">
+                      Browse All Sessions
+                    </Button>
+                  </Link>
                 </div>
-              </ListGroup.Item>
-              <ListGroup.Item action as={Link} to="/sessions/3">
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <strong>Building Scalable APIs with Node.js</strong>
-                    <div className="text-muted small">Alex Johnson</div>
-                  </div>
-                  <Badge bg="primary">Backend</Badge>
-                </div>
-              </ListGroup.Item>
-              <ListGroup.Item action as={Link} to="/sessions/4">
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <strong>UI/UX Design Principles</strong>
-                    <div className="text-muted small">Sarah Williams</div>
-                  </div>
-                  <Badge bg="primary">Design</Badge>
-                </div>
-              </ListGroup.Item>
-            </ListGroup>
-          </Card>
+              </Card.Body>
+            </Card>
+          )}
         </Col>
       </Row>
     </Container>
-  )
-}
+  );
+};
 
-export default SessionDetails
-
+export default SessionDetails;

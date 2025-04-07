@@ -1,22 +1,62 @@
-"use client"
-
-import { Container, Row, Col, Card } from "react-bootstrap"
-import { useParams } from "react-router-dom"
+// src/pages/UserProfile.tsx
+import { useState, useEffect } from "react";
+import { Container, Row, Col, Card, Alert } from "react-bootstrap";
+import { useParams } from "react-router-dom";
+import { userService } from "../services/user.service";
+import { registrationService } from "../services/registration.service";
+import { UserMinimal, Conference, ApiError } from "../types";
 
 const UserProfile = () => {
-  const { id } = useParams<{ id: string }>()
+  const { id } = useParams<{ id: string }>();
+  const [user, setUser] = useState<UserMinimal | null>(null);
+  const [sessions, setSessions] = useState<Conference[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // Mock user data - in a real app, you would fetch this from an API
-  const user = {
-    id,
-    name: "Jane Smith",
-    role: "Speaker",
-    organization: "Tech Company",
-    bio: "Experienced software developer with expertise in React and TypeScript.",
-    sessions: [
-      { id: "1", title: "Introduction to React Hooks" },
-      { id: "2", title: "Advanced TypeScript Patterns" },
-    ],
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchUserData = async () => {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        // Fetch user profile
+        const userData = await userService.getUserById(id);
+        setUser(userData);
+
+        // Fetch the user's registered conferences
+        const registrationsResponse =
+          await registrationService.getRegisteredConferences(id, {
+            limit: 10,
+            include_past: true,
+          });
+        setSessions(registrationsResponse.conferences);
+      } catch (err) {
+        console.error("Failed to load user profile:", err);
+        const apiError = err as ApiError;
+        setError(
+          apiError.data?.message ||
+            "Failed to load user profile. Please try again."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [id]);
+
+  if (isLoading) {
+    return <div className="text-center py-4">Loading profile...</div>;
+  }
+
+  if (error) {
+    return <Alert variant="danger">{error}</Alert>;
+  }
+
+  if (!user) {
+    return <Alert variant="warning">User not found</Alert>;
   }
 
   return (
@@ -26,14 +66,18 @@ const UserProfile = () => {
           <Card className="mb-4">
             <Card.Body className="text-center">
               <img
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&size=128`}
-                alt={user.name}
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  user.name || "User"
+                )}&background=random&size=128`}
+                alt={user.name || "User"}
                 className="rounded-circle mb-3"
                 style={{ width: "150px", height: "150px" }}
               />
-              <Card.Title>{user.name}</Card.Title>
-              <Card.Subtitle className="mb-2 text-muted">{user.role}</Card.Subtitle>
-              {user.organization && <p className="text-muted">{user.organization}</p>}
+              <Card.Title>{user.name || "User"}</Card.Title>
+              <Card.Subtitle className="mb-2 text-muted">
+                {user.role &&
+                  user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+              </Card.Subtitle>
             </Card.Body>
           </Card>
         </Col>
@@ -43,14 +87,17 @@ const UserProfile = () => {
             <Card.Header>Profile Information</Card.Header>
             <Card.Body>
               <h5>About</h5>
-              <p>{user.bio}</p>
+              <p>{user.bio || "No bio provided."}</p>
 
               <h5 className="mt-4">Sessions</h5>
-              {user.sessions.length > 0 ? (
+              {sessions.length > 0 ? (
                 <ul className="list-group">
-                  {user.sessions.map((session) => (
+                  {sessions.map((session) => (
                     <li key={session.id} className="list-group-item">
                       {session.title}
+                      <span className="badge bg-primary float-end">
+                        {new Date(session.starts_at).toLocaleDateString()}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -62,8 +109,7 @@ const UserProfile = () => {
         </Col>
       </Row>
     </Container>
-  )
-}
+  );
+};
 
-export default UserProfile
-
+export default UserProfile;

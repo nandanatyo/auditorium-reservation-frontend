@@ -1,40 +1,49 @@
-"use client"
-
-import type React from "react"
-
-import { useState, useContext } from "react"
-import { Container, Row, Col, Form, Button, Card, Alert } from "react-bootstrap"
-import { Link, useNavigate } from "react-router-dom"
-import { UserContext } from "../context/UserContext"
+// src/pages/Login.tsx
+import { useState } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Form,
+  Button,
+  Card,
+  Alert,
+} from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/auth/AuthProvider";
+import { ApiError } from "../types";
 
 const Login = () => {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const { login } = useContext(UserContext)
-  const navigate = useNavigate()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!email || !password) {
-      setError("Please enter both email and password")
-      return
+      setError("Please enter both email and password");
+      return;
     }
 
-    setIsLoading(true)
-    setError("")
+    setIsLoading(true);
+    setError("");
 
     try {
-      await login(email, password)
-      navigate("/profile")
-    } catch (err) {
-      setError("Invalid email or password")
+      await login({ email, password });
+      navigate("/profile");
+    } catch (error) {
+      console.error("Login error:", error);
+      // Handle API error with proper type
+      const apiError = error as ApiError;
+      setError(apiError.data?.message || "Invalid email or password");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Container>
@@ -79,28 +88,19 @@ const Login = () => {
 
               <div className="text-center mt-3">
                 <p>
-                  Don't have an account? <Link to="/register">Register here</Link>
+                  Don't have an account?{" "}
+                  <Link to="/register">Register here</Link>
                 </p>
                 <p>
                   <Link to="/forgot-password">Forgot your password?</Link>
                 </p>
-              </div>
-
-              <hr />
-
-              <div className="text-center">
-                <p className="text-muted">For demo purposes:</p>
-                <p className="small">Regular user: user@example.com / password</p>
-                <p className="small">Coordinator: coordinator@example.com / password</p>
-                <p className="small">Admin: admin@example.com / password</p>
               </div>
             </Card.Body>
           </Card>
         </Col>
       </Row>
     </Container>
-  )
-}
+  );
+};
 
-export default Login
-
+export default Login;
