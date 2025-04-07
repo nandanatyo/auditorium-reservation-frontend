@@ -1,4 +1,4 @@
-// src/pages/MySessions.tsx
+
 import { useState, useEffect, useCallback } from "react";
 import {
   Container,
@@ -22,27 +22,22 @@ const MySessions = () => {
   const [error, setError] = useState("");
   const [dataFetched, setDataFetched] = useState(false);
 
-  // Menggunakan useCallback untuk mencegah fungsi dibuat ulang pada setiap render
   const fetchRegisteredSessions = useCallback(async () => {
     if (!user || !user.id || dataFetched) return;
 
     try {
-      // Get registered conferences using the API
       const response = await getRegisteredConferences(user.id, {
         limit: 20,
         include_past: false,
       });
 
-      // Set the sessions from the response
       if (response && response.conferences) {
         setSessions(response.conferences);
       } else {
-        // Handle case where response is incorrect
         console.error("Unexpected response format:", response);
         setSessions([]);
       }
 
-      // Menandai bahwa data telah diambil
       setDataFetched(true);
     } catch (err) {
       console.error("Failed to load registered sessions:", err);
@@ -51,17 +46,15 @@ const MySessions = () => {
         apiError.data?.message ||
           "Failed to load your sessions. Please try again."
       );
-      setSessions([]); // Reset sessions on error
-      setDataFetched(true); // Menandai bahwa data telah dicoba diambil
+      setSessions([]);
+      setDataFetched(true);
     }
   }, [user, getRegisteredConferences, dataFetched]);
 
-  // Load user's registered conferences when component mounts
   useEffect(() => {
     fetchRegisteredSessions();
   }, [fetchRegisteredSessions]);
 
-  // Tampilkan loading hanya jika data belum diambil dan API masih loading
   if (isLoading && !dataFetched) {
     return <div className="text-center py-4">Loading your sessions...</div>;
   }

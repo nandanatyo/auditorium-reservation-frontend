@@ -1,4 +1,3 @@
-// src/pages/CreateProposal.tsx
 import { useState, useEffect } from "react";
 import {
   Container,
@@ -19,7 +18,6 @@ const CreateProposal = () => {
   const { createConference, isLoading: isCreating } = useConference();
   const navigate = useNavigate();
 
-  // Proposal form state
   const [formData, setFormData] = useState<CreateConferenceRequest>({
     title: "",
     description: "",
@@ -34,14 +32,12 @@ const CreateProposal = () => {
 
   const [error, setError] = useState("");
 
-  // Check if user is logged in, redirect to login if not authenticated and not loading
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate("/login");
     }
   }, [isAuthenticated, isLoading, navigate]);
 
-  // Set default speaker name from logged in user
   useEffect(() => {
     if (user && user.name) {
       setFormData((prev) => ({
@@ -58,7 +54,6 @@ const CreateProposal = () => {
   ) => {
     const { name, value } = e.target;
 
-    // Handle numeric values
     if (name === "seats") {
       setFormData((prev) => ({
         ...prev,
@@ -90,7 +85,6 @@ const CreateProposal = () => {
       return;
     }
 
-    // Validate form
     if (
       !formData.title ||
       !formData.description ||
@@ -105,17 +99,14 @@ const CreateProposal = () => {
     }
 
     try {
-      // Format dates in ISO string format
       const data = {
         ...formData,
         starts_at: new Date(formData.starts_at).toISOString(),
         ends_at: new Date(formData.ends_at).toISOString(),
       };
 
-      // Call the API to create conference/proposal
       await createConference(data);
 
-      // Navigate to my proposals page on success
       navigate("/my-proposals");
     } catch (err) {
       console.error("Failed to create proposal:", err);
@@ -126,7 +117,6 @@ const CreateProposal = () => {
     }
   };
 
-  // Show loading state
   if (isLoading) {
     return (
       <Container className="py-4">
@@ -135,7 +125,6 @@ const CreateProposal = () => {
     );
   }
 
-  // If not authenticated, return null (useEffect will handle redirect)
   if (!isAuthenticated) {
     return null;
   }

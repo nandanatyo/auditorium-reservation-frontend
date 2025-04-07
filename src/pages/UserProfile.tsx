@@ -1,4 +1,3 @@
-// src/pages/UserProfile.tsx
 import { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Alert } from "react-bootstrap";
 import { useParams } from "react-router-dom";
@@ -21,11 +20,9 @@ const UserProfile = () => {
       setError("");
 
       try {
-        // Fetch user profile
         const userData = await userService.getUserById(id);
         setUser(userData);
 
-        // Fetch the user's registered conferences
         const registrationsResponse =
           await registrationService.getRegisteredConferences(id, {
             limit: 10,

@@ -31,10 +31,8 @@ const AdminDashboard = () => {
     e.preventDefault();
 
     try {
-      // Call the API to create a new user with coordinator role
       await userService.createUser(newCoordinator);
 
-      // Reset the form
       setNewCoordinator({
         name: "",
         email: "",
@@ -42,24 +40,20 @@ const AdminDashboard = () => {
         role: "event_coordinator",
       });
 
-      // Show success message
       setSuccessMessage("Coordinator added successfully!");
       setShowSuccess(true);
 
-      // Hide success message after 3 seconds
       setTimeout(() => {
         setShowSuccess(false);
       }, 3000);
     } catch (err: any) {
       console.error("Error adding coordinator:", err);
 
-      // Show error message
       setErrorMessage(
         err.message || "Failed to add coordinator. Please try again."
       );
       setShowError(true);
 
-      // Hide error message after 3 seconds
       setTimeout(() => {
         setShowError(false);
       }, 3000);

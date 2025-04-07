@@ -1,4 +1,3 @@
-// src/pages/Register.tsx
 import { useState, useRef } from "react";
 import {
   Container,
@@ -43,12 +42,10 @@ const Register = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Reset email verification if email changes
     if (name === "email" && isEmailVerified) {
       setIsEmailVerified(false);
     }
 
-    // Clear email error when user starts typing in the email field
     if (name === "email" && errors.email) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -101,7 +98,7 @@ const Register = () => {
 
     try {
       setIsVerifying(true);
-      // Original implementation - keeping this exactly as it was
+
       await requestRegisterOTP(formData.email);
       setShowOtpModal(true);
       setOtpError("");
@@ -109,7 +106,6 @@ const Register = () => {
       console.error("Failed to request OTP:", error);
       const apiError = error as ApiError;
 
-      // Only setting an error message, but keeping the original error handling logic
       if (apiError.data?.error_code === "EMAIL_ALREADY_REGISTERED") {
         setErrors((prev) => ({
           ...prev,
@@ -126,14 +122,12 @@ const Register = () => {
   };
 
   const handleOtpChange = (index: number, value: string) => {
-    // Allow only digits
     if (value && !/^\d*$/.test(value)) return;
 
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
 
-    // Auto-focus next input after entering a digit
     if (value.length === 1 && index < 5) {
       otpInputRefs.current[index + 1]?.focus();
     }
@@ -196,7 +190,6 @@ const Register = () => {
       console.error("Registration failed:", error);
       const apiError = error as ApiError;
 
-      // Check for email already used error during registration
       if (apiError.data?.error_code === "EMAIL_ALREADY_REGISTERED") {
         setErrors((prev) => ({
           ...prev,

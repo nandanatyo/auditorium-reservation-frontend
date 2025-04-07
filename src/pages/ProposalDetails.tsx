@@ -1,4 +1,3 @@
-// src/pages/ProposalDetails.tsx
 import { useState, useEffect, useCallback } from "react";
 import {
   Container,
@@ -28,7 +27,6 @@ const ProposalDetails = () => {
   const [error, setError] = useState("");
   const [dataFetched, setDataFetched] = useState(false);
 
-  // Load conference data when component mounts - using useCallback to avoid recreation
   const fetchProposal = useCallback(async () => {
     if (!id || dataFetched) return;
 
@@ -87,7 +85,6 @@ const ProposalDetails = () => {
     }
   };
 
-  // Only show loading on initial data fetch
   if (isLoading && !dataFetched) {
     return <div className="text-center py-4">Loading proposal details...</div>;
   }
@@ -100,7 +97,7 @@ const ProposalDetails = () => {
     return <Alert variant="warning">Proposal not found</Alert>;
   }
 
-  // If we're still waiting for data but not in the initial loading state, render a placeholder
+
   if (!proposal) {
     return null;
   }

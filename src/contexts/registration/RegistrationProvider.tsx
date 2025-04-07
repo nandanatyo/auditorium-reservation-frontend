@@ -1,4 +1,3 @@
-// src/contexts/registration/RegistrationProvider.tsx
 import React, { createContext, useState, useContext } from "react";
 import { registrationService } from "../../services/registration.service";
 import {
@@ -107,7 +106,7 @@ export const RegistrationProvider: React.FC<{ children: React.ReactNode }> = ({
       );
       setRegisteredConferences(result.conferences);
       setPagination(result.pagination);
-      return result; // Return the full response
+      return result;
     } catch (error: any) {
       console.error("Failed to get registered conferences:", error);
       setError(

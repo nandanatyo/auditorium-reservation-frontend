@@ -34,7 +34,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       await userService.updateProfile(data);
 
-      // Refresh user data
       const updatedUser = await userService.getCurrentUser();
       setCurrentUser(updatedUser);
     } catch (error: any) {

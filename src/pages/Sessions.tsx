@@ -1,4 +1,3 @@
-// src/pages/Sessions.tsx
 import { useState, useEffect } from "react";
 import {
   Container,
@@ -21,9 +20,7 @@ const Sessions = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategory] = useState("");
 
-  // Load conferences/sessions on mount
   useEffect(() => {
-    // Only load approved conferences for the sessions page
     loadConferences({
       status: "approved",
       limit: 20,
@@ -33,12 +30,10 @@ const Sessions = () => {
     });
   }, [loadConferences]);
 
-  // Categories could be derived from available conferences
   const categories = Array.from(
     new Set(conferences.map((conference) => conference.title.split(" ")[0]))
   );
 
-  // Filter sessions when search term or conferences change
   useEffect(() => {
     const filtered = conferences.filter((conference) => {
       const matchesSearch =

@@ -37,13 +37,13 @@ const SessionDetails = () => {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Format date helper
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString();
   };
 
-  // Fetch conference details and feedbacks
+
   useEffect(() => {
     if (!id) return;
 
@@ -51,11 +51,11 @@ const SessionDetails = () => {
       try {
         setIsLoading(true);
 
-        // Get conference details
+
         const conferenceData = await conferenceService.getConference(id);
         setConference(conferenceData);
 
-        // Get feedbacks for this conference
+
         try {
           setIsLoadingFeedback(true);
           const feedbackResponse = await feedbackService.getConferenceFeedbacks(
@@ -65,7 +65,7 @@ const SessionDetails = () => {
           setFeedbacks(feedbackResponse.feedbacks || []);
         } catch (feedbackErr) {
           console.error("Error loading feedbacks:", feedbackErr);
-          // We don't set error here to allow the page to load even if feedbacks fail
+
         } finally {
           setIsLoadingFeedback(false);
         }
@@ -82,7 +82,7 @@ const SessionDetails = () => {
     loadData();
   }, [id]);
 
-  // Register for conference
+
   const handleRegister = async () => {
     if (!user) {
       navigate("/login");
@@ -95,14 +95,14 @@ const SessionDetails = () => {
       setIsRegistering(true);
       setError("");
 
-      // Memanggil API untuk mendaftar ke konferensi
+
       await registerForConference({ conference_id: id });
 
-      // Update local state to reflect registration
+
       setIsRegistered(true);
       setSuccessMessage("You have successfully registered for this session!");
 
-      // Opsional: Reload conference data to get updated seats_taken
+
       try {
         const updatedConference = await conferenceService.getConference(id);
         setConference(updatedConference);
@@ -110,7 +110,7 @@ const SessionDetails = () => {
         console.error("Failed to refresh conference data:", refreshErr);
       }
 
-      // Sembunyikan pesan sukses setelah beberapa detik
+
       setTimeout(() => {
         setSuccessMessage("");
       }, 5000);
@@ -122,7 +122,7 @@ const SessionDetails = () => {
     }
   };
 
-  // Submit feedback
+
   const handleFeedbackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -137,25 +137,23 @@ const SessionDetails = () => {
       setIsLoadingFeedback(true);
       setError("");
 
-      // Create the feedback using your API service
+
       await feedbackService.createFeedback({
         conference_id: id,
         comment: feedbackForm.comment,
       });
 
-      // Reset form and update UI
+
       setFeedbackSubmitted(true);
       setShowFeedbackForm(false);
       setFeedbackForm({ comment: "" });
 
-      // Reload feedbacks to show the new one
       const updatedFeedbacksResponse =
         await feedbackService.getConferenceFeedbacks(id, {
           limit: 10,
         });
       setFeedbacks(updatedFeedbacksResponse.feedbacks || []);
 
-      // Hide success message after 3 seconds
       setTimeout(() => {
         setFeedbackSubmitted(false);
       }, 3000);
@@ -167,7 +165,6 @@ const SessionDetails = () => {
     }
   };
 
-  // Handle feedback form changes
   const handleFeedbackChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {

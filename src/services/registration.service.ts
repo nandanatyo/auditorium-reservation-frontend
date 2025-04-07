@@ -1,4 +1,3 @@
-// src/services/registration.service.ts
 import api from "./api";
 import config from "../config/config";
 import {

@@ -1,4 +1,3 @@
-// pages/ConferencesPage.tsx
 import ConferenceList from "../components/ConferenceList";
 import ConferenceForm from "../components/ConferenceForm";
 

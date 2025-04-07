@@ -1,4 +1,3 @@
-// src/types/feedback.types.ts
 import { Pagination } from "./common.types";
 
 export interface Feedback {
@@ -9,7 +8,7 @@ export interface Feedback {
     id: string;
     name: string;
   };
-  conference_title?: string; // Properti tambahan untuk tampilan di UI
+  conference_title?: string;
 }
 
 export interface CreateFeedbackRequest {

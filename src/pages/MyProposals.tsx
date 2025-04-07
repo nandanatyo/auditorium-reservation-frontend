@@ -1,4 +1,3 @@
-// src/pages/MyProposals.tsx
 import { useState, useEffect } from "react";
 import {
   Container,
@@ -23,7 +22,7 @@ const MyProposals = () => {
   const [dataFetched, setDataFetched] = useState(false);
   const navigate = useNavigate();
 
-  // Load user's conferences when component mounts
+
   useEffect(() => {
     const fetchProposals = async () => {
       if (!user || !user.id || dataFetched) return;
@@ -32,7 +31,7 @@ const MyProposals = () => {
       setError("");
 
       try {
-        // Use direct service call to get all statuses for the current user's proposals
+
         const pendingResult = await conferenceService.getConferences({
           host_id: user.id,
           limit: 20,
@@ -57,14 +56,14 @@ const MyProposals = () => {
           order: "desc",
         });
 
-        // Combine all the proposals
+
         const allProposals = [
           ...pendingResult.conferences,
           ...approvedResult.conferences,
           ...rejectedResult.conferences,
         ];
 
-        // Sort by created_at date, newest first
+
         allProposals.sort(
           (a, b) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()

@@ -1,4 +1,3 @@
-// src/contexts/conference/ConferenceProvider.tsx
 import React, {
   createContext,
   useState,
@@ -81,7 +80,6 @@ export const ConferenceProvider: React.FC<{ children: React.ReactNode }> = ({
     []
   );
 
-  // Load conferences on mount
   useEffect(() => {
     loadConferences();
   }, [loadConferences]);

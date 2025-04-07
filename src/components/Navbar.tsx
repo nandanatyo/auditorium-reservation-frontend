@@ -1,4 +1,4 @@
-// In Navbar.tsx
+
 import { useAuth } from "../contexts/auth/AuthProvider";
 import { Link, useNavigate } from "react-router-dom";
 

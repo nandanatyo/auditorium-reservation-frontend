@@ -1,4 +1,3 @@
-// src/pages/Login.tsx
 import { useState } from "react";
 import {
   Container,
@@ -37,7 +36,7 @@ const Login = () => {
       navigate("/profile");
     } catch (error) {
       console.error("Login error:", error);
-      // Handle API error with proper type
+
       const apiError = error as ApiError;
       setError(apiError.data?.message || "Invalid email or password");
     } finally {

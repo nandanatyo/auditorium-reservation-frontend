@@ -1,4 +1,3 @@
-// src/pages/Profile.tsx
 import { Container, Row, Col, Card, Button, ListGroup } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/auth/AuthProvider";
@@ -14,17 +13,11 @@ const Profile = () => {
   const [proposalCount, setProposalCount] = useState(0);
   const [feedbackCount, setFeedbackCount] = useState(0);
 
-  // For a real app, you might want to fetch this data from the API
   useEffect(() => {
     if (user) {
-      // This is a placeholder for now - in a real app you'd load this data
       setAttendedCount(5);
       setProposalCount(2);
       setFeedbackCount(3);
-
-      // You could load the user's registered conferences here
-      // For example:
-      // getRegisteredConferences(user.id, { limit: 10, include_past: true });
     }
   }, [user]);
 

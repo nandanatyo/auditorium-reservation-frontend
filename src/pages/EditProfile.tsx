@@ -1,4 +1,3 @@
-// src/pages/EditProfile.tsx
 import { useState, useEffect } from "react";
 import {
   Container,
@@ -26,14 +25,12 @@ const EditProfile = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Redirect if not logged in
   useEffect(() => {
     if (!user && !isLoading) {
       navigate("/login");
     }
   }, [user, navigate, isLoading]);
 
-  // Set form data when user is available
   useEffect(() => {
     if (user) {
       setFormData({
@@ -57,7 +54,6 @@ const EditProfile = () => {
     setError("");
 
     try {
-      // Only send changed fields to the API
       const updateData: UpdateUserProfileRequest = {};
 
       if (formData.name !== user?.name) {
@@ -68,17 +64,15 @@ const EditProfile = () => {
         updateData.bio = formData.bio;
       }
 
-      // Only make the API call if there are changes
       if (Object.keys(updateData).length > 0) {
         await userService.updateProfile(updateData);
-        // Refresh user data after update
+
         await refreshUser();
         setSuccess(true);
       } else {
-        setSuccess(true); // No changes but still show success
+        setSuccess(true);
       }
 
-      // Reset success message after 3 seconds
       setTimeout(() => {
         setSuccess(false);
       }, 3000);
@@ -93,7 +87,6 @@ const EditProfile = () => {
     }
   };
 
-  // If we're still waiting for user data, show loading
   if (!user) {
     return <div className="text-center py-4">Loading...</div>;
   }

@@ -1,4 +1,3 @@
-// src/components/ConferenceForm.tsx
 import { useState } from "react";
 import { Form, Button, Alert } from "react-bootstrap";
 import { useConference } from "../contexts/conference/ConferenceProvider";
@@ -45,20 +44,16 @@ const ConferenceForm = () => {
     e.preventDefault();
 
     try {
-      // Format dates as ISO strings
       const data = {
         ...formData,
-        // Ensure dates are in ISO format
         starts_at: new Date(formData.starts_at).toISOString(),
         ends_at: new Date(formData.ends_at).toISOString(),
       };
 
       await createConference(data);
 
-      // Show success message
       setSuccess(true);
 
-      // Reset form after successful submission
       setFormData({
         title: "",
         description: "",
@@ -71,13 +66,11 @@ const ConferenceForm = () => {
         ends_at: "",
       });
 
-      // Hide success message after 3 seconds
       setTimeout(() => {
         setSuccess(false);
       }, 3000);
     } catch (err) {
       console.error("Failed to create conference:", err);
-      // Error is handled by the context and displayed via the error prop
     }
   };
 

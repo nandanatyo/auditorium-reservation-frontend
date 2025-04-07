@@ -8,7 +8,6 @@ const config = {
     maxLimit: 20,
   },
   endpoints: {
-    // Auth endpoints
     auth: {
       register: "/auth/register",
       registerOtp: "/auth/register/otp",
@@ -19,25 +18,21 @@ const config = {
       resetPasswordOtp: "/auth/reset-password/otp",
       resetPassword: "/auth/reset-password",
     },
-    // User endpoints
     users: {
       base: "/users",
       me: "/users/me",
       byId: (id: string) => `/users/${id}`,
     },
-    // Conference endpoints
     conferences: {
       base: "/conferences",
       byId: (id: string) => `/conferences/${id}`,
       status: (id: string) => `/conferences/${id}/status`,
     },
-    // Registration endpoints
     registrations: {
       base: "/registrations",
       byConference: (id: string) => `/registrations/conferences/${id}`,
       byUser: (id: string) => `/registrations/users/${id}`,
     },
-    // Feedback endpoints
     feedbacks: {
       base: "/feedbacks",
       byConference: (id: string) => `/feedbacks/conferences/${id}`,

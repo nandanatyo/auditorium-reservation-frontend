@@ -1,4 +1,3 @@
-// src/types/conference.types.ts
 import { Pagination } from "./common.types";
 
 export type ConferenceStatus = "pending" | "approved" | "rejected";

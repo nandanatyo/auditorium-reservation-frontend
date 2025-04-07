@@ -1,4 +1,3 @@
-// src/services/api.ts
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import config from "../config/config";
 import {
@@ -15,7 +14,6 @@ import {
   AuthResponse,
 } from "../types";
 
-// Create axios instance with base URL from configuration
 const api = axios.create({
   baseURL: config.apiUrl,
   headers: {
@@ -23,7 +21,6 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add authorization header
 api.interceptors.request.use(
   (config) => {
     const token = getAccessToken();
@@ -35,7 +32,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle token refresh on 401 errors
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ErrorResponse>) => {
@@ -43,7 +39,6 @@ api.interceptors.response.use(
       _retry?: boolean;
     };
 
-    // If error is 401 and not already retrying and we have a refresh token
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
@@ -64,20 +59,17 @@ api.interceptors.response.use(
         setAccessToken(access_token);
         setRefreshToken(refresh_token);
 
-        // Retry the original request with new token
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${access_token}`;
         }
         return axios(originalRequest);
       } catch (refreshError) {
-        // If refresh token is invalid, clear auth and redirect to login
         clearAuthTokens();
         window.location.href = "/login";
         return Promise.reject(refreshError);
       }
     }
 
-    // Create a more detailed error
     const apiError = new ApiError(
       error.response?.data?.message || error.message,
       error.response?.status,

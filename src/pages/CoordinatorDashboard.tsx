@@ -30,15 +30,13 @@ const CoordinatorDashboard = () => {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Mengambil data proposal yang pending dari backend
   useEffect(() => {
     const fetchPendingProposals = async () => {
       try {
         setIsLoading((prev) => ({ ...prev, conferences: true }));
 
-        // Mengambil proposal dengan status pending
         const response = await conferenceService.getConferences({
-          limit: 20, // Berdasarkan dokumentasi, limit max adalah 20
+          limit: 20,
           status: "pending",
           order_by: "created_at",
           order: "desc",
@@ -59,13 +57,11 @@ const CoordinatorDashboard = () => {
     }
   }, [key]);
 
-  // Mengambil data sesi aktif dari backend
   useEffect(() => {
     const fetchActiveSessions = async () => {
       try {
         setIsLoading((prev) => ({ ...prev, activeSessions: true }));
 
-        // Mengambil sesi dengan status approved dan sesi yang belum berlalu
         const response = await conferenceService.getConferences({
           limit: 20,
           status: "approved",
@@ -89,14 +85,11 @@ const CoordinatorDashboard = () => {
     }
   }, [key]);
 
-  // Mengambil data feedback dari backend
   useEffect(() => {
     const fetchAllFeedbacks = async () => {
       try {
         setIsLoading((prev) => ({ ...prev, feedback: true }));
 
-        // Karena feedbackService.getConferenceFeedbacks memerlukan conference_id,
-        // kita perlu mendapatkan terlebih dahulu daftar konferensi
         const conferencesResp = await conferenceService.getConferences({
           limit: 20,
           status: "approved",
@@ -104,10 +97,8 @@ const CoordinatorDashboard = () => {
           order: "desc",
         });
 
-        // Kemudian kita ambil feedback untuk setiap konferensi
         const allFeedbacks: Feedback[] = [];
 
-        // Gunakan Promise.all untuk meningkatkan performa
         if (conferencesResp.conferences.length > 0) {
           await Promise.all(
             conferencesResp.conferences.map(async (conference) => {
@@ -117,7 +108,6 @@ const CoordinatorDashboard = () => {
                     limit: 20,
                   });
 
-                // Tambahkan judul konferensi ke setiap feedback
                 const feedbacksWithConference = feedbackResp.feedbacks.map(
                   (feedback: any) => ({
                     ...feedback,
@@ -151,20 +141,18 @@ const CoordinatorDashboard = () => {
     }
   }, [key]);
 
-  // Handler untuk menyetujui proposal
   const handleApproveProposal = async (id: string) => {
     try {
       await conferenceService.updateConferenceStatus(id, {
         status: "approved",
       });
-      // Update state lokal setelah perubahan berhasil
+
       setPendingProposals((proposals) =>
         proposals.filter((proposal) => proposal.id !== id)
       );
     } catch (err: any) {
       console.error("Error approving proposal:", err);
 
-      // Cek jika error adalah konflik jadwal
       if (err.response?.data?.error_code === "TIME_WINDOW_CONFLICT") {
         const conflictDetails = err.response.data.detail?.conferences || [];
         const conflictMessage = `
@@ -189,13 +177,12 @@ const CoordinatorDashboard = () => {
     }
   };
 
-  // Handler untuk menolak proposal
   const handleRejectProposal = async (id: string) => {
     try {
       await conferenceService.updateConferenceStatus(id, {
         status: "rejected",
       });
-      // Update state lokal setelah perubahan berhasil
+
       setPendingProposals((proposals) =>
         proposals.filter((proposal) => proposal.id !== id)
       );
@@ -205,11 +192,10 @@ const CoordinatorDashboard = () => {
     }
   };
 
-  // Handler untuk menghapus session
   const handleRemoveSession = async (id: string) => {
     try {
       await conferenceService.deleteConference(id);
-      // Hapus session dari state lokal setelah berhasil
+
       setActiveSessions((sessions) =>
         sessions.filter((session) => session.id !== id)
       );
@@ -219,11 +205,10 @@ const CoordinatorDashboard = () => {
     }
   };
 
-  // Handler untuk menghapus feedback
   const handleRemoveFeedback = async (id: string) => {
     try {
       await feedbackService.deleteFeedback(id);
-      // Hapus feedback dari state lokal setelah berhasil
+
       setFeedbacks((feedbacks) =>
         feedbacks.filter((feedback) => feedback.id !== id)
       );
@@ -233,7 +218,6 @@ const CoordinatorDashboard = () => {
     }
   };
 
-  // Helper untuk mendapatkan badge status
   const getStatusBadge = (status: ConferenceStatus) => {
     switch (status) {
       case "pending":
@@ -247,26 +231,22 @@ const CoordinatorDashboard = () => {
     }
   };
 
-  // Format datetime dari ISO string
   const formatDateTime = (isoString: string) => {
     const date = new Date(isoString);
     return date.toLocaleString();
   };
 
-  // Ekstrak tanggal dari ISO string
   const formatDate = (isoString: string) => {
     const date = new Date(isoString);
     return date.toLocaleDateString();
   };
 
-  // Ekstrak waktu dari ISO string
   const formatTime = (startIso: string, endIso: string) => {
     const start = new Date(startIso);
     const end = new Date(endIso);
     return `${start.toLocaleTimeString()} - ${end.toLocaleTimeString()}`;
   };
 
-  // Render loading spinner
   const renderLoading = () => (
     <div className="text-center py-4">
       <Spinner animation="border" role="status">
@@ -275,7 +255,6 @@ const CoordinatorDashboard = () => {
     </div>
   );
 
-  // Render error alert
   const renderError = () =>
     error && (
       <Alert variant="danger" className="mt-3">

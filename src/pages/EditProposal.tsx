@@ -1,4 +1,3 @@
-// src/pages/EditProposal.tsx
 import { useState, useEffect, useCallback } from "react";
 import {
   Container,
@@ -23,11 +22,10 @@ const EditProposal = () => {
   const [success, setSuccess] = useState(false);
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [localLoading, setLocalLoading] = useState(true); // Add local loading state
+  const [localLoading, setLocalLoading] = useState(true);
 
-  // Load conference data when component mounts
   useEffect(() => {
-    let isMounted = true; // Track component mounted state
+    let isMounted = true;
 
     if (!id) {
       setLocalLoading(false);
@@ -39,11 +37,9 @@ const EditProposal = () => {
         setLocalLoading(true);
         const conferenceData = await getConference(id);
 
-        // Only update state if component is still mounted
         if (isMounted) {
           setConference(conferenceData);
 
-          // Set form data from conference
           setFormData({
             title: conferenceData.title,
             description: conferenceData.description,
@@ -54,7 +50,7 @@ const EditProposal = () => {
             seats: conferenceData.seats,
             starts_at: new Date(conferenceData.starts_at)
               .toISOString()
-              .slice(0, 16), // Format for datetime-local input
+              .slice(0, 16),
             ends_at: new Date(conferenceData.ends_at)
               .toISOString()
               .slice(0, 16),
@@ -76,11 +72,10 @@ const EditProposal = () => {
 
     fetchConference();
 
-    // Cleanup function to handle unmounting
     return () => {
       isMounted = false;
     };
-  }, [id]); // Remove getConference from dependency array
+  }, [id]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -112,7 +107,6 @@ const EditProposal = () => {
     setFormError("");
 
     try {
-      // Only send changed fields
       const updates: UpdateConferenceRequest = {};
 
       if (formData.title !== conference.title) updates.title = formData.title;
@@ -128,7 +122,6 @@ const EditProposal = () => {
         updates.prerequisites = formData.prerequisites;
       if (formData.seats !== conference.seats) updates.seats = formData.seats;
 
-      // Format dates for API
       const newStartsAt = new Date(formData.starts_at as string).toISOString();
       const newEndsAt = new Date(formData.ends_at as string).toISOString();
 
@@ -138,7 +131,6 @@ const EditProposal = () => {
       await updateConference(id, updates);
       setSuccess(true);
 
-      // Reset success message after 3 seconds
       setTimeout(() => {
         setSuccess(false);
       }, 3000);
@@ -153,7 +145,6 @@ const EditProposal = () => {
     }
   };
 
-  // Use local loading state instead of global loading state
   if (localLoading) {
     return <div className="text-center py-4">Loading proposal details...</div>;
   }

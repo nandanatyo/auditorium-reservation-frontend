@@ -1,4 +1,3 @@
-// src/pages/EditSession.tsx
 import { useState, useEffect } from "react";
 import {
   Container,
@@ -26,7 +25,6 @@ const EditSession = () => {
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load conference data when component mounts
   useEffect(() => {
     if (!id) return;
 
@@ -34,7 +32,6 @@ const EditSession = () => {
       try {
         const conferenceData = await getConference(id);
 
-        // Check if the user is the host (owner) of this conference
         if (user?.id !== conferenceData.host.id) {
           setFormError("You don't have permission to edit this session");
           return;
@@ -42,7 +39,6 @@ const EditSession = () => {
 
         setConference(conferenceData);
 
-        // Set form data from conference
         setFormData({
           title: conferenceData.title,
           description: conferenceData.description,
@@ -53,7 +49,7 @@ const EditSession = () => {
           seats: conferenceData.seats,
           starts_at: new Date(conferenceData.starts_at)
             .toISOString()
-            .slice(0, 16), // Format for datetime-local input
+            .slice(0, 16),
           ends_at: new Date(conferenceData.ends_at).toISOString().slice(0, 16),
         });
       } catch (err) {
@@ -98,10 +94,7 @@ const EditSession = () => {
     setFormError("");
 
     try {
-      // Check if the status is approved - some fields may not be editable in that case
       if (conference.status === "approved") {
-        // For approved conferences, only certain fields may be editable
-        // This depends on your API's business rules
         const allowedUpdates: Partial<UpdateConferenceRequest> = {};
 
         if (formData.description !== conference.description)
@@ -110,10 +103,8 @@ const EditSession = () => {
         if (formData.prerequisites !== conference.prerequisites)
           allowedUpdates.prerequisites = formData.prerequisites;
 
-        // Update with the limited set of fields
         await updateConference(id, allowedUpdates);
       } else {
-        // For pending conferences, all fields may be editable
         const updates: UpdateConferenceRequest = {};
 
         if (formData.title !== conference.title) updates.title = formData.title;
@@ -129,7 +120,7 @@ const EditSession = () => {
           updates.prerequisites = formData.prerequisites;
         if (formData.seats !== conference.seats) updates.seats = formData.seats;
 
-        // Format dates for API
+
         const newStartsAt = new Date(
           formData.starts_at as string
         ).toISOString();
@@ -144,7 +135,7 @@ const EditSession = () => {
 
       setSuccess(true);
 
-      // Reset success message after 3 seconds
+
       setTimeout(() => {
         setSuccess(false);
       }, 3000);
@@ -181,7 +172,6 @@ const EditSession = () => {
     return <Alert variant="warning">Session not found</Alert>;
   }
 
-  // For approved sessions, some fields may be disabled
   const isApproved = conference?.status === "approved";
 
   return (

@@ -1,4 +1,4 @@
-// src/components/ConferenceList.tsx
+
 import { useEffect } from "react";
 import { Badge, Button, Alert } from "react-bootstrap";
 import { useConference } from "../contexts/conference/ConferenceProvider";
@@ -17,10 +17,9 @@ const ConferenceList = () => {
   } = useConference();
   const { user } = useAuth();
 
-  // Load conferences when component mounts
+
   useEffect(() => {
-    // For event coordinators, show pending conferences by default
-    // For regular users, show all approved conferences
+
     const status: ConferenceStatus =
       user?.role === "event_coordinator" ? "pending" : "approved";
 

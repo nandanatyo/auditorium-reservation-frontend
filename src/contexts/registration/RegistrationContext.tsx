@@ -8,7 +8,7 @@ import {
 } from '../../types';
 
 export interface RegistrationContextType {
-    // Registration operations
+
     registerForConference: (data: RegisterConferenceRequest) => Promise<void>;
     getRegisteredUsers: (
         conferenceId: string,
@@ -19,7 +19,7 @@ export interface RegistrationContextType {
         params: RegisteredConferencesQueryParams
     ) => Promise<GetRegisteredConferencesResponse>;
 
-    // Loading states
+
     isRegistering: boolean;
     isFetchingRegisteredUsers: boolean;
     isFetchingRegisteredConferences: boolean;
