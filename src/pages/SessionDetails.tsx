@@ -37,12 +37,15 @@ const SessionDetails = () => {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Function to check if a conference/session has ended
+  const hasConferenceEnded = (endDate: string): boolean => {
+    return new Date(endDate) < new Date();
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString();
   };
-
 
   useEffect(() => {
     if (!id) return;
@@ -50,11 +53,8 @@ const SessionDetails = () => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-
-
         const conferenceData = await conferenceService.getConference(id);
         setConference(conferenceData);
-
 
         try {
           setIsLoadingFeedback(true);
@@ -65,7 +65,6 @@ const SessionDetails = () => {
           setFeedbacks(feedbackResponse.feedbacks || []);
         } catch (feedbackErr) {
           console.error("Error loading feedbacks:", feedbackErr);
-
         } finally {
           setIsLoadingFeedback(false);
         }
@@ -82,7 +81,6 @@ const SessionDetails = () => {
     loadData();
   }, [id]);
 
-
   const handleRegister = async () => {
     if (!user) {
       navigate("/login");
@@ -94,14 +92,9 @@ const SessionDetails = () => {
     try {
       setIsRegistering(true);
       setError("");
-
-
       await registerForConference({ conference_id: id });
-
-
       setIsRegistered(true);
       setSuccessMessage("You have successfully registered for this session!");
-
 
       try {
         const updatedConference = await conferenceService.getConference(id);
@@ -109,7 +102,6 @@ const SessionDetails = () => {
       } catch (refreshErr) {
         console.error("Failed to refresh conference data:", refreshErr);
       }
-
 
       setTimeout(() => {
         setSuccessMessage("");
@@ -121,7 +113,6 @@ const SessionDetails = () => {
       setIsRegistering(false);
     }
   };
-
 
   const handleFeedbackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,13 +127,10 @@ const SessionDetails = () => {
     try {
       setIsLoadingFeedback(true);
       setError("");
-
-
       await feedbackService.createFeedback({
         conference_id: id,
         comment: feedbackForm.comment,
       });
-
 
       setFeedbackSubmitted(true);
       setShowFeedbackForm(false);
@@ -217,6 +205,8 @@ const SessionDetails = () => {
     );
   }
 
+  const sessionHasEnded = hasConferenceEnded(conference.ends_at);
+
   return (
     <Container className="py-4">
       {successMessage && (
@@ -277,6 +267,11 @@ const SessionDetails = () => {
                       <strong>Prerequisites:</strong> {conference.prerequisites}
                     </p>
                   )}
+                  {sessionHasEnded && (
+                    <p>
+                      <Badge bg="secondary">Session has ended</Badge>
+                    </p>
+                  )}
                 </Col>
                 <Col md={6}>
                   <h5>Attendance</h5>
@@ -317,6 +312,7 @@ const SessionDetails = () => {
             </Card.Body>
             <Card.Footer>
               {!isRegistered &&
+              !sessionHasEnded &&
               (conference.seats_taken || 0) < conference.seats &&
               conference.status === "approved" ? (
                 <Button
@@ -331,7 +327,7 @@ const SessionDetails = () => {
                     ? "Registering..."
                     : "Register for this Session"}
                 </Button>
-              ) : isRegistered ? (
+              ) : isRegistered && !sessionHasEnded ? (
                 <div>
                   <Button variant="outline-success" disabled>
                     Registered ✓
@@ -340,6 +336,10 @@ const SessionDetails = () => {
                     <Button variant="link">View My Sessions</Button>
                   </Link>
                 </div>
+              ) : sessionHasEnded ? (
+                <Button variant="outline-secondary" disabled>
+                  Session has ended
+                </Button>
               ) : conference.status !== "approved" ? (
                 <Button variant="secondary" disabled>
                   Registration Not Available - Session {conference.status}
@@ -417,6 +417,11 @@ const SessionDetails = () => {
                 <p className="text-center text-muted">
                   No feedback yet. Be the first to leave feedback!
                 </p>
+              ) : !sessionHasEnded ? (
+                <Alert variant="info" className="mt-3">
+                  Feedback from other attendees will be visible after the
+                  session ends on {formatDate(conference.ends_at)}.
+                </Alert>
               ) : (
                 <ListGroup variant="flush">
                   {feedbacks.map((feedback) => (
