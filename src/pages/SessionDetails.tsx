@@ -27,6 +27,7 @@ const SessionDetails = () => {
 
   const [conference, setConference] = useState<Conference | null>(null);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [userFeedback, setUserFeedback] = useState<Feedback | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
@@ -60,8 +61,19 @@ const SessionDetails = () => {
           setIsLoadingFeedback(true);
           const feedbackResponse = await feedbackService.getConferenceFeedbacks(
             id,
-            { limit: 10 }
+            { limit: 20 }
           );
+
+          // If user is logged in, find their feedback
+          if (user) {
+            const userFeedbackItem = feedbackResponse.feedbacks.find(
+              (feedback) => feedback.user.id === user.id
+            );
+            if (userFeedbackItem) {
+              setUserFeedback(userFeedbackItem);
+            }
+          }
+
           setFeedbacks(feedbackResponse.feedbacks || []);
         } catch (feedbackErr) {
           console.error("Error loading feedbacks:", feedbackErr);
@@ -79,7 +91,7 @@ const SessionDetails = () => {
     };
 
     loadData();
-  }, [id]);
+  }, [id, user]);
 
   const handleRegister = async () => {
     if (!user) {
@@ -138,9 +150,18 @@ const SessionDetails = () => {
 
       const updatedFeedbacksResponse =
         await feedbackService.getConferenceFeedbacks(id, {
-          limit: 10,
+          limit: 20,
         });
+
       setFeedbacks(updatedFeedbacksResponse.feedbacks || []);
+
+      // Update user's feedback
+      const userFeedbackItem = updatedFeedbacksResponse.feedbacks.find(
+        (feedback) => feedback.user.id === user.id
+      );
+      if (userFeedbackItem) {
+        setUserFeedback(userFeedbackItem);
+      }
 
       setTimeout(() => {
         setFeedbackSubmitted(false);
@@ -206,6 +227,7 @@ const SessionDetails = () => {
   }
 
   const sessionHasEnded = hasConferenceEnded(conference.ends_at);
+  const canSubmitFeedback = true; // Allow feedback regardless of session status
 
   return (
     <Container className="py-4">
@@ -361,13 +383,21 @@ const SessionDetails = () => {
           <Card>
             <Card.Header className="d-flex justify-content-between align-items-center">
               <h5 className="mb-0">Feedback ({feedbacks.length})</h5>
-              {user && !showFeedbackForm && (
-                <Button
-                  variant="outline-primary"
-                  size="sm"
-                  onClick={() => setShowFeedbackForm(true)}>
-                  Leave Feedback
-                </Button>
+              {user &&
+                !showFeedbackForm &&
+                canSubmitFeedback &&
+                !userFeedback && (
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    onClick={() => setShowFeedbackForm(true)}>
+                    Leave Feedback
+                  </Button>
+                )}
+              {user && !showFeedbackForm && userFeedback && (
+                <Badge bg="success" className="p-2">
+                  You've submitted feedback
+                </Badge>
               )}
             </Card.Header>
             <Card.Body>
@@ -418,19 +448,45 @@ const SessionDetails = () => {
                   No feedback yet. Be the first to leave feedback!
                 </p>
               ) : !sessionHasEnded ? (
-                <Alert variant="info" className="mt-3">
-                  Feedback from other attendees will be visible after the
-                  session ends on {formatDate(conference.ends_at)}.
-                </Alert>
+                <>
+                  {/* Show user their own feedback if they've submitted any */}
+                  {userFeedback && (
+                    <div className="mb-4">
+                      <h6 className="mb-3">Your Feedback:</h6>
+                      <ListGroup>
+                        <ListGroup.Item className="border-bottom">
+                          <div className="d-flex justify-content-between align-items-center mb-1">
+                            <div>
+                              <strong>You</strong>
+                            </div>
+                            <small className="text-muted">
+                              {formatDate(userFeedback.created_at)}
+                            </small>
+                          </div>
+                          <p className="mb-0">{userFeedback.comment}</p>
+                        </ListGroup.Item>
+                      </ListGroup>
+                    </div>
+                  )}
+
+                  <Alert variant="info" className="mt-3">
+                    Feedback from other attendees will be visible after the
+                    session ends on {formatDate(conference.ends_at)}.
+                  </Alert>
+                </>
               ) : (
                 <ListGroup variant="flush">
                   {feedbacks.map((feedback) => (
                     <ListGroup.Item key={feedback.id} className="border-bottom">
                       <div className="d-flex justify-content-between align-items-center mb-1">
                         <div>
-                          <Link to={`/users/${feedback.user.id}`}>
-                            {feedback.user.name}
-                          </Link>
+                          {user && feedback.user.id === user.id ? (
+                            <strong>You</strong>
+                          ) : (
+                            <Link to={`/users/${feedback.user.id}`}>
+                              {feedback.user.name}
+                            </Link>
+                          )}
                         </div>
                         <small className="text-muted">
                           {formatDate(feedback.created_at)}
