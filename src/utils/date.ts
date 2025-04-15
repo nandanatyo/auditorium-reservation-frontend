@@ -16,3 +16,12 @@ export const formatTime = (isoString: string): string => {
 export const toISOString = (date: Date): string => {
   return date.toISOString();
 };
+
+export const isDateInPast = (isoString: string): boolean => {
+  const date = new Date(isoString);
+  return date < new Date();
+};
+
+export const hasConferenceEnded = (endsAt: string): boolean => {
+  return isDateInPast(endsAt);
+};

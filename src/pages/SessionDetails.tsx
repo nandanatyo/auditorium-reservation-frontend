@@ -57,6 +57,22 @@ const SessionDetails = () => {
         const conferenceData = await conferenceService.getConference(id);
         setConference(conferenceData);
 
+        if (user) {
+          try {
+            const registrations =
+              await registrationService.getRegisteredConferences(user.id, {
+                limit: 20,
+                include_past: true,
+              });
+            const isUserRegistered = registrations.conferences.some(
+              (conf) => conf.id === id
+            );
+            setIsRegistered(isUserRegistered);
+          } catch (err) {
+            console.error("Error checking registration status:", err);
+          }
+        }
+
         try {
           setIsLoadingFeedback(true);
           const feedbackResponse = await feedbackService.getConferenceFeedbacks(
@@ -227,7 +243,7 @@ const SessionDetails = () => {
   }
 
   const sessionHasEnded = hasConferenceEnded(conference.ends_at);
-  const canSubmitFeedback = true; // Allow feedback regardless of session status
+  const canSubmitFeedback = sessionHasEnded && isRegistered && !userFeedback;
 
   return (
     <Container className="py-4">
@@ -358,6 +374,20 @@ const SessionDetails = () => {
                     <Button variant="link">View My Sessions</Button>
                   </Link>
                 </div>
+              ) : sessionHasEnded && isRegistered ? (
+                <div>
+                  <Button variant="outline-secondary" disabled>
+                    Session has ended
+                  </Button>
+                  {!userFeedback && (
+                    <Button
+                      variant="outline-primary"
+                      className="ms-2"
+                      onClick={() => setShowFeedbackForm(true)}>
+                      Leave Feedback
+                    </Button>
+                  )}
+                </div>
               ) : sessionHasEnded ? (
                 <Button variant="outline-secondary" disabled>
                   Session has ended
@@ -383,18 +413,14 @@ const SessionDetails = () => {
           <Card>
             <Card.Header className="d-flex justify-content-between align-items-center">
               <h5 className="mb-0">Feedback ({feedbacks.length})</h5>
-              {user &&
-                !showFeedbackForm &&
-                canSubmitFeedback &&
-                !userFeedback && (
-                  <Button
-                    variant="outline-primary"
-                    size="sm"
-                    onClick={() => setShowFeedbackForm(true)}>
-                    Leave Feedback
-                  </Button>
-                )}
-              {user && !showFeedbackForm && userFeedback && (
+              {sessionHasEnded && user && !userFeedback && (
+                <Button
+                  variant="primary"
+                  onClick={() => setShowFeedbackForm(true)}>
+                  Leave Feedback
+                </Button>
+              )}
+              {user && userFeedback && (
                 <Badge bg="success" className="p-2">
                   You've submitted feedback
                 </Badge>
@@ -444,12 +470,47 @@ const SessionDetails = () => {
                   <Spinner animation="border" size="sm" /> Loading feedbacks...
                 </div>
               ) : feedbacks.length === 0 ? (
-                <p className="text-center text-muted">
-                  No feedback yet. Be the first to leave feedback!
-                </p>
-              ) : !sessionHasEnded ? (
+                <div className="text-center">
+                  <p className="text-muted mb-3">
+                    No feedback yet. Be the first to leave feedback!
+                  </p>
+                  {sessionHasEnded &&
+                    user &&
+                    !userFeedback &&
+                    !showFeedbackForm && (
+                      <Button
+                        variant="primary"
+                        onClick={() => setShowFeedbackForm(true)}>
+                        Leave Your Feedback
+                      </Button>
+                    )}
+                </div>
+              ) : sessionHasEnded ? (
+                // Show all feedbacks for past sessions
+                <ListGroup variant="flush">
+                  {feedbacks.map((feedback) => (
+                    <ListGroup.Item key={feedback.id} className="border-bottom">
+                      <div className="d-flex justify-content-between align-items-center mb-1">
+                        <div>
+                          {user && feedback.user.id === user.id ? (
+                            <strong>You</strong>
+                          ) : (
+                            <Link to={`/users/${feedback.user.id}`}>
+                              {feedback.user.name}
+                            </Link>
+                          )}
+                        </div>
+                        <small className="text-muted">
+                          {formatDate(feedback.created_at)}
+                        </small>
+                      </div>
+                      <p className="mb-0">{feedback.comment}</p>
+                    </ListGroup.Item>
+                  ))}
+                </ListGroup>
+              ) : (
+                // For active sessions, only show user's own feedback if they left any
                 <>
-                  {/* Show user their own feedback if they've submitted any */}
                   {userFeedback && (
                     <div className="mb-4">
                       <h6 className="mb-3">Your Feedback:</h6>
@@ -474,28 +535,6 @@ const SessionDetails = () => {
                     session ends on {formatDate(conference.ends_at)}.
                   </Alert>
                 </>
-              ) : (
-                <ListGroup variant="flush">
-                  {feedbacks.map((feedback) => (
-                    <ListGroup.Item key={feedback.id} className="border-bottom">
-                      <div className="d-flex justify-content-between align-items-center mb-1">
-                        <div>
-                          {user && feedback.user.id === user.id ? (
-                            <strong>You</strong>
-                          ) : (
-                            <Link to={`/users/${feedback.user.id}`}>
-                              {feedback.user.name}
-                            </Link>
-                          )}
-                        </div>
-                        <small className="text-muted">
-                          {formatDate(feedback.created_at)}
-                        </small>
-                      </div>
-                      <p className="mb-0">{feedback.comment}</p>
-                    </ListGroup.Item>
-                  ))}
-                </ListGroup>
               )}
             </Card.Body>
           </Card>

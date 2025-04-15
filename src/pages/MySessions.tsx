@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import {
   Container,
@@ -8,6 +7,7 @@ import {
   Badge,
   Button,
   Alert,
+  Nav,
 } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/auth/AuthProvider";
@@ -19,6 +19,8 @@ const MySessions = () => {
   const { user } = useAuth();
   const { getRegisteredConferences, isLoading } = useRegistration();
   const [sessions, setSessions] = useState<Conference[]>([]);
+  const [pastSessions, setPastSessions] = useState<Conference[]>([]);
+  const [activeTab, setActiveTab] = useState("upcoming");
   const [error, setError] = useState("");
   const [dataFetched, setDataFetched] = useState(false);
 
@@ -26,16 +28,30 @@ const MySessions = () => {
     if (!user || !user.id || dataFetched) return;
 
     try {
+      // Get all sessions including past ones
       const response = await getRegisteredConferences(user.id, {
         limit: 20,
-        include_past: false,
+        include_past: true, // Include past sessions
       });
 
       if (response && response.conferences) {
-        setSessions(response.conferences);
+        const now = new Date();
+
+        // Split into upcoming and past sessions
+        const upcoming = response.conferences.filter(
+          (conf) => new Date(conf.ends_at) > now
+        );
+
+        const past = response.conferences.filter(
+          (conf) => new Date(conf.ends_at) <= now
+        );
+
+        setSessions(upcoming);
+        setPastSessions(past);
       } else {
         console.error("Unexpected response format:", response);
         setSessions([]);
+        setPastSessions([]);
       }
 
       setDataFetched(true);
@@ -47,6 +63,7 @@ const MySessions = () => {
           "Failed to load your sessions. Please try again."
       );
       setSessions([]);
+      setPastSessions([]);
       setDataFetched(true);
     }
   }, [user, getRegisteredConferences, dataFetched]);
@@ -82,14 +99,37 @@ const MySessions = () => {
     );
   }
 
+  const displaySessions = activeTab === "upcoming" ? sessions : pastSessions;
+
   return (
     <Container className="py-4">
       <h1 className="mb-4">My Sessions</h1>
 
-      {sessions.length === 0 ? (
+      <Nav
+        variant="tabs"
+        className="mb-4"
+        activeKey={activeTab}
+        onSelect={(k) => k && setActiveTab(k)}>
+        <Nav.Item>
+          <Nav.Link eventKey="upcoming">
+            Upcoming Sessions ({sessions.length})
+          </Nav.Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Nav.Link eventKey="past">
+            Past Sessions ({pastSessions.length})
+          </Nav.Link>
+        </Nav.Item>
+      </Nav>
+
+      {displaySessions.length === 0 ? (
         <Card>
           <Card.Body className="text-center">
-            <p>You're not registered for any sessions yet.</p>
+            <p>
+              {activeTab === "upcoming"
+                ? "You're not registered for any upcoming sessions."
+                : "You haven't attended any past sessions."}
+            </p>
             <Link to="/sessions">
               <Button variant="primary">Browse Sessions</Button>
             </Link>
@@ -97,20 +137,14 @@ const MySessions = () => {
         </Card>
       ) : (
         <Row>
-          {sessions.map((session) => (
+          {displaySessions.map((session) => (
             <Col md={6} className="mb-4" key={session.id}>
               <Card>
                 <Card.Header className="d-flex justify-content-between align-items-center">
                   <Badge bg="primary">{session.title.split(" ")[0]}</Badge>
                   <Badge
-                    bg={
-                      new Date(session.starts_at) > new Date()
-                        ? "success"
-                        : "secondary"
-                    }>
-                    {new Date(session.starts_at) > new Date()
-                      ? "Upcoming"
-                      : "Past"}
+                    bg={activeTab === "upcoming" ? "success" : "secondary"}>
+                    {activeTab === "upcoming" ? "Upcoming" : "Past"}
                   </Badge>
                 </Card.Header>
                 <Card.Body>
@@ -135,7 +169,11 @@ const MySessions = () => {
                   </div>
                   <div className="d-flex gap-2">
                     <Link to={`/sessions/${session.id}`}>
-                      <Button variant="outline-primary">View Details</Button>
+                      <Button variant="primary">
+                        {activeTab === "past"
+                          ? "View Details & Feedback"
+                          : "View Details"}
+                      </Button>
                     </Link>
                   </div>
                 </Card.Body>
