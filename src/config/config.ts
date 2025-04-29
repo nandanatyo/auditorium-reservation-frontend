@@ -1,6 +1,5 @@
 const config = {
-  apiUrl:
-    import.meta.env.VITE_API_URL || "https://devsecops.nathakusuma.com/api/v1",
+  apiUrl: import.meta.env.VITE_API_URL,
   tokenStorageKey: "auditorium_access_token",
   refreshTokenStorageKey: "auditorium_refresh_token",
   pagination: {
