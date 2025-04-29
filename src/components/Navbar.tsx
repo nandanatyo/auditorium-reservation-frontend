@@ -1,11 +1,9 @@
-
 import { useAuth } from "../contexts/auth/AuthProvider";
 import { Link, useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  console.log("User in Navbar:", user);
 
   const handleLogout = () => {
     logout();
@@ -40,6 +38,57 @@ const Navbar = () => {
                 Sessions
               </Link>
             </li>
+
+            {/* Added Vulnerability Demos Dropdown */}
+            <li className="nav-item dropdown">
+              <a
+                className="nav-link dropdown-toggle text-danger"
+                href="#"
+                id="vulnerabilityDropdown"
+                role="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false">
+                Vulnerability Demos
+              </a>
+              <ul
+                className="dropdown-menu"
+                aria-labelledby="vulnerabilityDropdown">
+                <li>
+                  <Link
+                    className="dropdown-item text-danger"
+                    to="/sql-injection">
+                    A03:2021-Injection
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    className="dropdown-item text-danger"
+                    to="/auth-vulnerabilities">
+                    A07:2021-Authentication Failures
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    className="dropdown-item text-danger"
+                    to="/reset-password">
+                    A02:2021-Cryptographic Failures
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    className="dropdown-item text-danger"
+                    to="/security-misconfiguration">
+                    A05:2021-Security Misconfiguration
+                  </Link>
+                </li>
+                <li>
+                  <Link className="dropdown-item text-danger" to="/users/1">
+                    A01:2021-Broken Access Control
+                  </Link>
+                </li>
+              </ul>
+            </li>
+
             {user && (
               <li className="nav-item dropdown">
                 <a

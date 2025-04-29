@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { Badge, Button, Alert } from "react-bootstrap";
 import { useConference } from "../contexts/conference/ConferenceProvider";
@@ -17,9 +16,7 @@ const ConferenceList = () => {
   } = useConference();
   const { user } = useAuth();
 
-
   useEffect(() => {
-
     const status: ConferenceStatus =
       user?.role === "event_coordinator" ? "pending" : "approved";
 

@@ -26,6 +26,12 @@ import { FeedbackProvider } from "./contexts/feedback/FeedbackProvider";
 import { RegistrationProvider } from "./contexts/registration/RegistrationProvider";
 import Conferences from "./pages/Conferences";
 
+// Importing our vulnerability demonstration pages
+import SQLInjectionDemo from "./pages/SQLInjectionDemo";
+import AuthenticationVulnerabilities from "./pages/AuthenticationVulnerabilities";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import SecurityMisconfigurationDemo from "./pages/SecurityMisconfigurationDemo";
+
 function App() {
   return (
     <AuthProvider>
@@ -39,6 +45,7 @@ function App() {
                   <main className="flex-grow-1 container py-4">
                     <div className="content-wrapper bg-white bg-opacity-75 rounded shadow p-3 mb-5">
                       <Routes>
+                        {/* Original routes */}
                         <Route path="/" element={<Home />} />
                         <Route path="/register" element={<Register />} />
                         <Route path="/login" element={<Login />} />
@@ -74,6 +81,24 @@ function App() {
                           element={<CoordinatorDashboard />}
                         />
                         <Route path="/admin" element={<AdminDashboard />} />
+
+                        {/* Vulnerability demonstration routes */}
+                        <Route
+                          path="/sql-injection"
+                          element={<SQLInjectionDemo />}
+                        />
+                        <Route
+                          path="/auth-vulnerabilities"
+                          element={<AuthenticationVulnerabilities />}
+                        />
+                        <Route
+                          path="/reset-password"
+                          element={<ResetPasswordPage />}
+                        />
+                        <Route
+                          path="/security-misconfiguration"
+                          element={<SecurityMisconfigurationDemo />}
+                        />
                       </Routes>
                     </div>
                   </main>
