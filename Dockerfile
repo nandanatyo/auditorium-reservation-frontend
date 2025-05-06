@@ -12,4 +12,7 @@ COPY . .
 
 RUN npx vite build
 
-CMD [ "serve", "-s", "dist" ]
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+CMD ["/app/start.sh"]
