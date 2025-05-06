@@ -15,10 +15,14 @@ const Home = () => {
     const fetchUpcomingConferences = async () => {
       try {
         setLoading(true);
+
+        const now = new Date();
+        const formattedDate = now.toISOString();
+
         const response = await conferenceService.getConferences({
           limit: 3,
           status: "approved",
-          starts_after: new Date().toISOString(),
+          starts_after: formattedDate,
           order_by: "starts_at",
           order: "asc",
           include_past: false,

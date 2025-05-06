@@ -99,14 +99,38 @@ const CreateProposal = () => {
     }
 
     try {
-      const data = {
-        ...formData,
-        starts_at: new Date(formData.starts_at).toISOString(),
-        ends_at: new Date(formData.ends_at).toISOString(),
+      // Format dates with timezone offset (using local timezone)
+      const formatDateWithOffset = (dateString: string) => {
+        const date = new Date(dateString);
+
+        // Get timezone offset in minutes and convert to hours:minutes format
+        const tzOffset = -date.getTimezoneOffset();
+        const tzOffsetHours = Math.floor(Math.abs(tzOffset) / 60);
+        const tzOffsetMinutes = Math.abs(tzOffset) % 60;
+
+        // Format the offset as +HH:MM or -HH:MM
+        const tzOffsetFormatted =
+          (tzOffset >= 0 ? "+" : "-") +
+          String(tzOffsetHours).padStart(2, "0") +
+          ":" +
+          String(tzOffsetMinutes).padStart(2, "0");
+
+        // Create ISO string but remove the 'Z' at the end
+        const isoWithoutZ = date.toISOString().slice(0, -1);
+
+        // Return ISO string with timezone offset
+        return isoWithoutZ + tzOffsetFormatted;
       };
 
-      await createConference(data);
+      const data = {
+        ...formData,
+        starts_at: formatDateWithOffset(formData.starts_at),
+        ends_at: formatDateWithOffset(formData.ends_at),
+      };
 
+      console.log("Sending proposal data:", data);
+
+      await createConference(data);
       navigate("/my-proposals");
     } catch (err) {
       console.error("Failed to create proposal:", err);
