@@ -1,94 +1,63 @@
 import { useAuth } from "../contexts/auth/AuthProvider";
 import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+
+  console.log("User in Navbar:", user);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
+  const toggleMobileMenu = () => {
+    setIsOpen(!isOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsOpen(false);
+  };
+
   return (
     <nav className="navbar navbar-expand-lg navbar-dark mb-4">
       <div className="container">
-        <Link className="navbar-brand" to="/">
+        <Link className="navbar-brand" to="/" onClick={closeMobileMenu}>
           Conference Hub
         </Link>
+
         <button
           className="navbar-toggler"
           type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
+          onClick={toggleMobileMenu}
           aria-controls="navbarNav"
-          aria-expanded="false"
+          aria-expanded={isOpen}
           aria-label="Toggle navigation">
           <span className="navbar-toggler-icon"></span>
         </button>
-        <div className="collapse navbar-collapse" id="navbarNav">
+
+        <div
+          className={`collapse navbar-collapse ${isOpen ? "show" : ""}`}
+          id="navbarNav">
           <ul className="navbar-nav me-auto">
             <li className="nav-item">
-              <Link className="nav-link" to="/">
+              <Link className="nav-link" to="/" onClick={closeMobileMenu}>
                 Home
               </Link>
             </li>
             <li className="nav-item">
-              <Link className="nav-link" to="/sessions">
+              <Link
+                className="nav-link"
+                to="/sessions"
+                onClick={closeMobileMenu}>
                 Sessions
               </Link>
             </li>
-
-            {/* Added Vulnerability Demos Dropdown */}
-            <li className="nav-item dropdown">
-              <a
-                className="nav-link dropdown-toggle text-danger"
-                href="#"
-                id="vulnerabilityDropdown"
-                role="button"
-                data-bs-toggle="dropdown"
-                aria-expanded="false">
-                Vulnerability Demos
-              </a>
-              <ul
-                className="dropdown-menu"
-                aria-labelledby="vulnerabilityDropdown">
-                <li>
-                  <Link
-                    className="dropdown-item text-danger"
-                    to="/sql-injection">
-                    A03:2021-Injection
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    className="dropdown-item text-danger"
-                    to="/auth-vulnerabilities">
-                    A07:2021-Authentication Failures
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    className="dropdown-item text-danger"
-                    to="/reset-password">
-                    A02:2021-Cryptographic Failures
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    className="dropdown-item text-danger"
-                    to="/security-misconfiguration">
-                    A05:2021-Security Misconfiguration
-                  </Link>
-                </li>
-                <li>
-                  <Link className="dropdown-item text-danger" to="/users/1">
-                    A01:2021-Broken Access Control
-                  </Link>
-                </li>
-              </ul>
-            </li>
-
             {user && (
               <li className="nav-item dropdown">
                 <a
@@ -96,23 +65,39 @@ const Navbar = () => {
                   href="#"
                   id="navbarDropdown"
                   role="button"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false">
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsAccountDropdownOpen(!isAccountDropdownOpen);
+                  }}
+                  aria-expanded={isAccountDropdownOpen}>
                   My Account
                 </a>
-                <ul className="dropdown-menu" aria-labelledby="navbarDropdown">
+                <ul
+                  className={`dropdown-menu ${
+                    isAccountDropdownOpen ? "show" : ""
+                  }`}
+                  aria-labelledby="navbarDropdown">
                   <li>
-                    <Link className="dropdown-item" to="/profile">
+                    <Link
+                      className="dropdown-item"
+                      to="/profile"
+                      onClick={closeMobileMenu}>
                       My Profile
                     </Link>
                   </li>
                   <li>
-                    <Link className="dropdown-item" to="/my-proposals">
+                    <Link
+                      className="dropdown-item"
+                      to="/my-proposals"
+                      onClick={closeMobileMenu}>
                       My Proposals
                     </Link>
                   </li>
                   <li>
-                    <Link className="dropdown-item" to="/my-sessions">
+                    <Link
+                      className="dropdown-item"
+                      to="/my-sessions"
+                      onClick={closeMobileMenu}>
                       My Sessions
                     </Link>
                   </li>
@@ -120,7 +105,10 @@ const Navbar = () => {
                     <hr className="dropdown-divider" />
                   </li>
                   <li>
-                    <Link className="dropdown-item" to="/create-proposal">
+                    <Link
+                      className="dropdown-item"
+                      to="/create-proposal"
+                      onClick={closeMobileMenu}>
                       Create Proposal
                     </Link>
                   </li>
@@ -129,19 +117,26 @@ const Navbar = () => {
             )}
             {user && user.role === "event_coordinator" && (
               <li className="nav-item">
-                <Link className="nav-link" to="/coordinator">
+                <Link
+                  className="nav-link"
+                  to="/coordinator"
+                  onClick={closeMobileMenu}>
                   Coordinator Dashboard
                 </Link>
               </li>
             )}
             {user && user.role === "admin" && (
               <li className="nav-item">
-                <Link className="nav-link" to="/admin">
+                <Link
+                  className="nav-link"
+                  to="/admin"
+                  onClick={closeMobileMenu}>
                   Admin Dashboard
                 </Link>
               </li>
             )}
           </ul>
+
           <ul className="navbar-nav">
             {user ? (
               <li className="nav-item dropdown">
@@ -150,20 +145,31 @@ const Navbar = () => {
                   href="#"
                   id="userDropdown"
                   role="button"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false">
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsUserDropdownOpen(!isUserDropdownOpen);
+                  }}
+                  aria-expanded={isUserDropdownOpen}>
                   {user.name}
                 </a>
                 <ul
-                  className="dropdown-menu dropdown-menu-end"
+                  className={`dropdown-menu dropdown-menu-end ${
+                    isUserDropdownOpen ? "show" : ""
+                  }`}
                   aria-labelledby="userDropdown">
                   <li>
-                    <Link className="dropdown-item" to="/profile">
+                    <Link
+                      className="dropdown-item"
+                      to="/profile"
+                      onClick={closeMobileMenu}>
                       Profile
                     </Link>
                   </li>
                   <li>
-                    <Link className="dropdown-item" to="/edit-profile">
+                    <Link
+                      className="dropdown-item"
+                      to="/edit-profile"
+                      onClick={closeMobileMenu}>
                       Edit Profile
                     </Link>
                   </li>
@@ -180,12 +186,18 @@ const Navbar = () => {
             ) : (
               <>
                 <li className="nav-item">
-                  <Link className="nav-link" to="/login">
+                  <Link
+                    className="nav-link"
+                    to="/login"
+                    onClick={closeMobileMenu}>
                     Login
                   </Link>
                 </li>
                 <li className="nav-item">
-                  <Link className="nav-link" to="/register">
+                  <Link
+                    className="nav-link"
+                    to="/register"
+                    onClick={closeMobileMenu}>
                     Register
                   </Link>
                 </li>

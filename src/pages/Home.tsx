@@ -2,45 +2,33 @@ import { Row, Col, Card, Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Conference } from "../types/conference.types";
-import { conferenceService } from "../services/conference.service";
+import { useConference } from "../contexts/conference/ConferenceProvider";
 
 const Home = () => {
+  const { conferences, isLoading, error, loadConferences } = useConference();
   const [upcomingConferences, setUpcomingConferences] = useState<Conference[]>(
     []
   );
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchUpcomingConferences = async () => {
-      try {
-        setLoading(true);
+    loadConferences({
+      status: "approved",
+      limit: 3,
+      order_by: "starts_at",
+      order: "asc",
+      include_past: false,
+      starts_after: new Date().toISOString(),
+    });
+  }, [loadConferences]);
 
-        const now = new Date();
-        const formattedDate = now.toISOString();
+  useEffect(() => {
+    const now = new Date();
+    const upcoming = conferences
+      .filter((conference) => new Date(conference.starts_at) > now)
+      .slice(0, 3);
 
-        const response = await conferenceService.getConferences({
-          limit: 3,
-          status: "approved",
-          starts_after: formattedDate,
-          order_by: "starts_at",
-          order: "asc",
-          include_past: false,
-        });
-        setUpcomingConferences(response.conferences);
-        setError(null);
-      } catch (err) {
-        console.error("Failed to fetch upcoming conferences:", err);
-        setError(
-          "Failed to load upcoming conferences. Please try again later."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUpcomingConferences();
-  }, []);
+    setUpcomingConferences(upcoming);
+  }, [conferences]);
 
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = {
@@ -100,7 +88,7 @@ const Home = () => {
         </Col>
       </Row>
 
-      {/* Action Cards Section */}
+      {}
       <Row className="mb-5">
         <Col md={6} className="mb-4">
           <Card className="h-100 shadow-sm">
@@ -141,15 +129,24 @@ const Home = () => {
         <Col>
           <h2 className="text-center mb-4">Upcoming Conferences</h2>
 
-          {loading && <p className="text-center">Loading conferences...</p>}
+          {isLoading && <p className="text-center">Loading conferences...</p>}
 
-          {error && <p className="text-center text-danger">{error}</p>}
+          {error && (
+            <div className="text-center">
+              <p className="text-danger">{error}</p>
+              <Button
+                variant="outline-primary"
+                onClick={() => window.location.reload()}>
+                Try Again
+              </Button>
+            </div>
+          )}
 
-          {!loading && !error && upcomingConferences.length === 0 && (
+          {!isLoading && !error && upcomingConferences.length === 0 && (
             <p className="text-center">No upcoming conferences found.</p>
           )}
 
-          {!loading &&
+          {!isLoading &&
             !error &&
             upcomingConferences.map((conference) => (
               <Card key={conference.id} className="mb-4">
