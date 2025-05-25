@@ -3,6 +3,7 @@ import { authService } from "../../services/auth.service";
 import { userService } from "../../services/user.service";
 import {
   User,
+  UserRole,
   LoginRequest,
   RegisterRequest,
   RegisterOTPRequest,
@@ -43,11 +44,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // VULNERABLE: Allows anyone to become admin by adding ?adminAccess=1 to URL
       if (adminAccess === "1") {
-        const adminUser = {
+        const adminUser: User = {
           id: "admin-" + Math.random().toString(36).substring(7),
           name: "Admin User",
           email: "admin@example.com",
-          role: "admin",
+          role: "admin" as UserRole,
           bio: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -64,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // VULNERABLE: Allows role spoofing via URL parameter
       if (userRole && user) {
-        setUser({ ...user, role: userRole as any });
+        setUser({ ...user, role: userRole as UserRole });
       }
     };
 

@@ -7,7 +7,6 @@ import {
   Button,
   Form,
   Alert,
-  InputGroup,
   ListGroup,
 } from "react-bootstrap";
 import {
@@ -15,7 +14,6 @@ import {
   makeCrossSiteRequest,
   makeRepeatedRequests,
 } from "../services/api";
-import { conferenceService } from "../services/conference.service";
 
 const SecurityMisconfigurationDemo = () => {
   const [corsUrl, setCorsUrl] = useState("");
@@ -393,8 +391,7 @@ config := cors.Config{
               <strong>CORS Configuration:</strong> Specify exact allowed origins
               instead of using wildcards. For example:
               <code>
-                AllowOrigins: []string
-                {("https://yourdomain.com", "https://admin.yourdomain.com")}
+                {` AllowOrigins: []string{"https://yourdomain.com", "https://admin.yourdomain.com"}`}
               </code>
             </ListGroup.Item>
             <ListGroup.Item>

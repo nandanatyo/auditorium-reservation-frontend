@@ -8,7 +8,7 @@ import {
   Card,
   Alert,
 } from "react-bootstrap";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useConference } from "../contexts/conference/ConferenceProvider";
 import { Conference, UpdateConferenceRequest, ApiError } from "../types";
 import { useAuth } from "../contexts/auth/AuthProvider";
@@ -120,7 +120,6 @@ const EditSession = () => {
           updates.prerequisites = formData.prerequisites;
         if (formData.seats !== conference.seats) updates.seats = formData.seats;
 
-
         const newStartsAt = new Date(
           formData.starts_at as string
         ).toISOString();
@@ -134,7 +133,6 @@ const EditSession = () => {
       }
 
       setSuccess(true);
-
 
       setTimeout(() => {
         setSuccess(false);

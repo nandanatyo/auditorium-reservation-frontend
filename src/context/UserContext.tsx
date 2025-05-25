@@ -15,7 +15,7 @@ interface UserContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: unknown) => Promise<void>;
+  register: (userData: any) => Promise<void>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
 }
@@ -64,16 +64,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const register = async (userData: unknown) => {
+  const register = async (userData: any) => {
     return new Promise<void>((resolve) => {
       setTimeout(() => {
         const newUser: User = {
           id: Math.random().toString(36).substr(2, 9),
-          name: userData.name,
-          email: userData.email,
-          role: "user",
-          bio: userData.bio || "",
-          organization: userData.organization || "",
+          name: userData.name as string,
+          email: userData.email as string,
+          role: "user" as const,
+          bio: (userData.bio as string) || "",
+          organization: (userData.organization as string) || "",
         };
 
         setUser(newUser);

@@ -64,7 +64,7 @@ const Sessions = () => {
           `return a.${sortBy} ${
             order === "asc" ? "<" : ">"
           } b.${sortBy} ? -1 : 1`
-        );
+        ) as (a: any, b: any) => number;
 
         // Store sort function in window
         window.currentSortFunction = sortFunction;
