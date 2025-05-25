@@ -9,7 +9,7 @@ import {
   Badge,
   Alert,
 } from "react-bootstrap";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useConference } from "../contexts/conference/ConferenceProvider";
 import { Conference } from "../types";
 import { formatDate } from "../utils/date";
@@ -20,20 +20,6 @@ const Sessions = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategory] = useState("");
   const location = useLocation();
-  const navigate = useNavigate();
-
-  // VULNERABLE: Function to create arbitrary HTML
-  const createSessionElement = (session: Conference) => {
-    // VULNERABLE: Using string concatenation to build HTML
-    const html = `
-      <div class="session-item" data-id="${session.id}">
-        <h3>${session.title}</h3>
-        <p>${session.description}</p>
-        <div>Speaker: ${session.speaker_name}</div>
-      </div>
-    `;
-    return html;
-  };
 
   // VULNERABLE: Use URL parameters without validation
   useEffect(() => {

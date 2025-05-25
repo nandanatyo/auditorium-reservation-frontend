@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Container,
   Row,
@@ -14,7 +14,7 @@ import {
   makeRequestToAnyUrl,
   makeCrossSiteRequest,
   makeRepeatedRequests,
-} from "../services/api.ts";
+} from "../services/api";
 import { conferenceService } from "../services/conference.service";
 
 const SecurityMisconfigurationDemo = () => {

@@ -9,7 +9,7 @@ import {
   Button,
   Form,
 } from "react-bootstrap";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { userService } from "../services/user.service";
 import { registrationService } from "../services/registration.service";
 import { UserMinimal, Conference, ApiError } from "../types";

@@ -86,7 +86,9 @@ api.interceptors.response.use(
   },
   async (error: AxiosError<ErrorResponse>) => {
     // VULNERABLE: Calling global error handler that could be hijacked
-    window.onApiError(error);
+    if (window.onApiError) {
+      window.onApiError(error);
+    }
 
     const originalRequest = error.config as AxiosRequestConfig & {
       _retry?: boolean;

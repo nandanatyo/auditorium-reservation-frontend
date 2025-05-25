@@ -15,6 +15,7 @@ import {
 import { useAuth } from "../contexts/auth/AuthProvider";
 import { useRegistration } from "../contexts/registration/RegistrationProvider";
 import { conferenceService } from "../services/conference.service";
+import { registrationService } from "../services/registration.service";
 import { feedbackService } from "../services/feedback.service";
 import { Conference, Feedback } from "../types";
 
@@ -65,7 +66,7 @@ const SessionDetails = () => {
                 include_past: true,
               });
             const isUserRegistered = registrations.conferences.some(
-              (conf) => conf.id === id
+              (conf: Conference) => conf.id === id
             );
             setIsRegistered(isUserRegistered);
           } catch (err) {
@@ -243,7 +244,6 @@ const SessionDetails = () => {
   }
 
   const sessionHasEnded = hasConferenceEnded(conference.ends_at);
-  const canSubmitFeedback = sessionHasEnded && isRegistered && !userFeedback;
 
   return (
     <Container className="py-4">

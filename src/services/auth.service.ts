@@ -37,7 +37,6 @@ export const authService = {
    * This works because the backend is not hashing passwords
    */
   register: async (data: RegisterRequest): Promise<AuthResponse> => {
-    // Password is sent in plaintext and stored that way on backend due to disabled bcrypt
     console.log("VULNERABLE: Sending plaintext password:", data.password);
 
     const response = await api.post<AuthResponse>(
@@ -77,16 +76,13 @@ export const authService = {
    * VULNERABLE: Predicting OTP using weak PRNG
    * This function simulates the ability to predict OTPs due to weak random number generation
    */
-  predictOTP: async (email: string): Promise<string> => {
-    // Since the backend uses math/rand instead of crypto/rand,
-    // OTPs are predictable based on system time
+  predictOTP: async (_email: string): Promise<string> => {
     const currentTime = new Date();
     const seed =
       currentTime.getHours() * 3600 +
       currentTime.getMinutes() * 60 +
       currentTime.getSeconds();
 
-    // Simple simulation of the weak PRNG algorithm that might be used on backend
     const weakRandom = (seed * 9301 + 49297) % 233280;
     const otp = Math.floor(100000 + (weakRandom / 233280) * 900000).toString();
 
@@ -104,7 +100,6 @@ export const authService = {
       throw new Error("No refresh token available");
     }
 
-    // Backend doesn't check token expiration
     console.log("VULNERABLE: Using refresh token without checking expiration");
 
     const response = await api.post<AuthResponse>(
@@ -146,7 +141,6 @@ export const authService = {
    * VULNERABLE: Reset password without secure cryptography
    */
   resetPassword: async (data: ResetPasswordRequest): Promise<AuthResponse> => {
-    // Password is sent in plaintext and stored that way on backend due to disabled bcrypt
     console.log(
       "VULNERABLE: Sending plaintext password reset:",
       data.new_password
@@ -178,23 +172,21 @@ export const authService = {
 
     for (const password of passwordList) {
       try {
-        const response = await api.post<AuthResponse>(
-          config.endpoints.auth.login,
-          { email, password }
-        );
+        await api.post<AuthResponse>(config.endpoints.auth.login, {
+          email,
+          password,
+        });
 
-        // If we get here, login was successful
         console.log(
           "VULNERABLE: Brute force successful with password:",
           password
         );
         return password;
       } catch (error) {
-        // Continue trying with next password
         console.log("Failed attempt with password:", password);
       }
     }
 
-    return null; // No password worked
+    return null;
   },
 };

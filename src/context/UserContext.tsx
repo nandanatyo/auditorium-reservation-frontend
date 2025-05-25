@@ -15,7 +15,7 @@ interface UserContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: any) => Promise<void>;
+  register: (userData: unknown) => Promise<void>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
 }
@@ -64,7 +64,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const register = async (userData: any) => {
+  const register = async (userData: unknown) => {
     return new Promise<void>((resolve) => {
       setTimeout(() => {
         const newUser: User = {
