@@ -41,10 +41,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
-    return new Promise<void>((resolve, reject) => {
+  const login = async (email: string, _password: string) => {
+    return new Promise<void>((resolve) => {
       setTimeout(() => {
-        const mockUser = {
+        const mockUser: User = {
           id: "1",
           name: "John Doe",
           email: email,
@@ -65,9 +65,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const register = async (userData: any) => {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>((resolve) => {
       setTimeout(() => {
-        const newUser = {
+        const newUser: User = {
           id: Math.random().toString(36).substr(2, 9),
           name: userData.name,
           email: userData.email,

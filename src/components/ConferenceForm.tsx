@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Form, Button, Alert } from "react-bootstrap";
 import { useConference } from "../contexts/conference/ConferenceProvider";
-import { CreateConferenceRequest, ApiError } from "../types";
+import { CreateConferenceRequest } from "../types";
 
 const ConferenceForm = () => {
   const { createConference, isLoading, error } = useConference();

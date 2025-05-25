@@ -1,3 +1,12 @@
+// Add type declarations for window ENV_CONFIG
+declare global {
+  interface Window {
+    ENV_CONFIG?: {
+      VITE_API_URL?: string;
+    };
+  }
+}
+
 const config = {
   apiUrl: window.ENV_CONFIG?.VITE_API_URL || import.meta.env.VITE_API_URL,
   tokenStorageKey: "auditorium_access_token",
